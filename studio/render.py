@@ -246,7 +246,7 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     out_dir.mkdir(parents=True, exist_ok=True)
     start, end = clip["start"], clip["end"]
     layout, fg_h, hook_y, cap_y = geometry(src_w, src_h, clip.get("layout", "blur"))
-    ass = build_ass(words, start, end, clip.get("hook", ""), clip.get("style", "bounce"),
+    ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
                     clip.get("highlight_words", []), hook_y, cap_y)
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
