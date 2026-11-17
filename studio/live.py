@@ -158,6 +158,16 @@ class Session:
             self.proc.terminate()
 
     def _ingest(self):
+        """Record the stream. However this ends, even when ffmpeg cannot start at all, the session is marked as
+        ended, so it stops showing as recording and gives its place to the next one."""
+        try:
+            self._ingest_loop()
+        except Exception as e:  # noqa: BLE001
+            self.job["error"] = f"Recording stopped: {media_safe(e)}"
+        finally:
+            self.ended = True
+
+    def _ingest_loop(self):
         fails = 0
         url = self.job["source"]["url"]
         while not self.stop_flag.is_set():
