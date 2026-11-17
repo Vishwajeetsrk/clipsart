@@ -375,7 +375,7 @@ def render_one(job, clip, words):
     clip["status"] = "rendering"
     save(job)
     try:
-        if not clip.get("src") and not (job.get("source_path") and Path(job["source_path"]).is_file()):
+        if not clip.get("src") and not job.get("source_path"):
             _piece_again(job, clip)
         off = clip.get("src_offset", 0.0)
         src = Path(clip["src"]) if clip.get("src") else Path(job["source_path"])
