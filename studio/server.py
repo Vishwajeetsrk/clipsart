@@ -252,9 +252,12 @@ def _ip(request: Request) -> str:
     """The visitor's address, used for rate limits. The connection's own address, or the one the proxy in front
     reports (PEAKCUT_TRUST_PROXY). If that connection comes from the CDN, the CDN's header names the real visitor
     (PEAKCUT_CLIENT_IP_HEADER). The header is believed only when the CDN really sent the request, so nobody can
-    pick their own address by sending it themselves."""
+    pick their own address by sending it themselves.
+
+    The proxy adds the address it saw at the END of X-Forwarded-For. Everything before that was written by the
+    visitor, so only the last entry is believed."""
     fwd = request.headers.get("x-forwarded-for", "")
-    peer = (fwd.split(",")[0].strip() if fwd and config.env("PEAKCUT_TRUST_PROXY") else "") or (request.client.host if request.client else "")
+    peer = (fwd.split(",")[-1].strip() if fwd and config.env("PEAKCUT_TRUST_PROXY") else "") or (request.client.host if request.client else "")
     named = config.env("PEAKCUT_CLIENT_IP_HEADER")
     if named and request.headers.get(named) and _from_cdn(peer):
         return request.headers[named].split(",")[0].strip()[:64]

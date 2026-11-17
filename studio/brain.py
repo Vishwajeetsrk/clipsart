@@ -311,9 +311,9 @@ def describe(text, title="", uploader=""):
              "highlight_words": [], "reason": "Clipped by hand."}
     if len(text.split()) < 4:
         return blank
-    prompt = (f"A streamer's viewer clipped this moment by hand.\nVideo title: {title or 'unknown'}\n"
-              f"Channel: {uploader or 'unknown'}\n\nReturn exactly one item describing it. Set start and end to 0."
-              + RULES.format(min_len=0, max_len=0, transcript=text))
+    prompt = (f"A streamer's viewer clipped this moment by hand.\nVideo title: {_safe(title) or 'unknown'}\n"
+              f"Channel: {_safe(uploader) or 'unknown'}\n\nReturn exactly one item describing it. Set start and end to 0."
+              + RULES.format(min_len=0, max_len=0, transcript=_safe(text, 8000)))
     try:
         out, _m, _u = ask_ai(prompt, purpose="Hand clip: title and hook")
         c = _tidy(out[0], 0, 0)
