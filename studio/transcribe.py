@@ -50,8 +50,40 @@ def _model_files(d) -> dict:
     raise FileNotFoundError(f"No speech model files in {d}")
 
 
+def _sherpa():
+    """The speech library. On Windows a file whose full path is over 260 characters cannot be loaded, which happens
+    when PeakCut sits in a deep folder ("DLL load failed ... The filename or extension is too long"). Then it is
+    loaded through the folder's short name (C:\\Users\\...\\SITE-P~1), which points at the same files."""
+    try:
+        import sherpa_onnx
+        return sherpa_onnx
+    except ImportError as e:
+        if os.name != "nt" or "too long" not in str(e).lower():
+            raise
+        first = e
+    import ctypes
+    import importlib.util
+    import sys
+    for k in [m for m in sys.modules if m == "sherpa_onnx" or m.startswith("sherpa_onnx.")]:
+        del sys.modules[k]
+    spec = importlib.util.find_spec("sherpa_onnx")
+    site = os.path.dirname(os.path.dirname(spec.origin)) if spec and spec.origin else ""
+    buf = ctypes.create_unicode_buffer(1024)
+    if site and ctypes.windll.kernel32.GetShortPathNameW(site, buf, 1024) and len(buf.value) < len(site):
+        sys.path.insert(0, buf.value)
+        try:
+            import sherpa_onnx
+            return sherpa_onnx
+        except ImportError:
+            pass
+        finally:
+            sys.path.remove(buf.value)
+    raise RuntimeError("PeakCut is in a folder too deep for Windows to load the speech model from. Move the PeakCut "
+                       "folder somewhere short, like C:\\peakcut, and start it again.") from first
+
+
 def _new():
-    import sherpa_onnx
+    sherpa_onnx = _sherpa()
     from . import fetch_model
     fetch_model.ensure()             # downloaded here, once, if it was never fetched
     d = config.ASR_MODEL_DIR
