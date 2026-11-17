@@ -375,6 +375,8 @@ def render_one(job, clip, words):
     clip["status"] = "rendering"
     save(job)
     try:
+        if not clip.get("src") and not (job.get("source_path") and Path(job["source_path"]).is_file()):
+            _piece_again(job, clip)
         off = clip.get("src_offset", 0.0)
         src = Path(clip["src"]) if clip.get("src") else Path(job["source_path"])
         if not clip.get("src"):
@@ -464,6 +466,27 @@ def _english_part(job, clip):
 
 LONG_VIDEO = 40 * 60   # above this, fetch only the pieces that become clips
 PAD = 8                # seconds kept either side of a fetched piece, so clips can be re-trimmed
+
+
+def _piece_again(job, clip):
+    """Remaking a clip whose own piece of the video was never fetched (its first try failed) and whose whole video
+    is not here: fetch the piece now, cut exactly at the asked time, so no sound matching is needed."""
+    src = job.get("source") or {}
+    if src.get("type") != "url" or not src.get("url"):
+        raise RuntimeError("The original video is no longer here, so this clip can't be made again. Add the video again.")
+    d = Path(job["dir"])
+    want = max(0.0, clip["start"] - PAD)
+    until = clip["end"] + PAD if not job.get("duration") else min(job["duration"], clip["end"] + PAD)
+    try:
+        piece = media.download_section(src["url"], d / "clips", f"{clip['id']}.src", want, until,
+                                       int(job["options"]["quality"]), exact=True)
+        meta = media.probe(piece)
+    except Exception as e:  # noqa: BLE001
+        raise RuntimeError(f"Could not fetch this part of the video: {safe.friendly(e, 250)}") from e
+    clip.update(src=str(piece), src_offset=round(want, 2), src_end=round(want + meta["duration"], 2))
+    clip["end"] = min(clip["end"], clip["src_end"])
+    job.setdefault("width", meta["width"])
+    job.setdefault("height", meta["height"])
 
 
 def _fetch_piece(job, clip, full_audio):
