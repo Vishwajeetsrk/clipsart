@@ -1284,7 +1284,9 @@ def ai_models(request: Request, body: dict = Body(default={})):
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(502, "The service did not give its list of models. Check the key, or type the model yourself. " + _ai_error(e)[:160])
+        reason = ai.explain(e)
+        raise HTTPException(502, f"The service did not give its list of models. {reason}" if reason else
+                            "The service did not give its list of models. Check the key, or type the model yourself. " + _ai_error(e)[:160])
 
 
 @app.post("/api/ai/test")
