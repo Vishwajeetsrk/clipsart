@@ -2399,12 +2399,6 @@ function drawClipDlg(full) {
   bindTrimPreview();
   if (full) initThumbnailEditor(c, m);
   initPostSchedule();
-  } else if (D.sig !== sig) $("#stage").innerHTML = stage;
-  D.sig = sig;
-  put($("#dposts"), postPills(c));
-  bindTrimPreview();
-  if (full) initThumbnailEditor(c, m);
-  initPostSchedule();
 }
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
