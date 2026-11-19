@@ -288,7 +288,9 @@ def get(aid):
 
 def list_accounts() -> list:
     return [{"id": a["id"], "platform": a["platform"], "label": PLATFORM_NAMES.get(a["platform"], a["platform"].title()), "name": a["name"],
-             "added": a["added"], "detail": a.get("detail", ""), "url": a.get("url", "")} for a in _all()]
+             "added": a["added"], "detail": a.get("detail", ""), "url": a.get("url", ""),
+             "has_api": bool(a.get("access_token") and a.get("access_token") != "web"),
+             "auth_type": "api" if (a.get("access_token") and a.get("access_token") != "web") else "web"} for a in _all()]
 
 
 def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> dict:
@@ -303,7 +305,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "page_id": page_id,
             "access_token": token or "web",
             "added": time.time(),
-            "detail": "1-Click Direct Reels Publisher" if token in ("web", "") else (f"Page ID: {page_id}" if page_id != "page" else "Facebook Reels"),
+            "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else (f"Page ID: {page_id}" if page_id != "page" else "Facebook Reels API"),
             "url": f"https://www.facebook.com/{page_id}" if (page_id != "page" and not page_id.startswith("@")) else "https://business.facebook.com"
         }
     elif platform == "twitter":
@@ -315,7 +317,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "access_token": token or "web",
             "bearer_token": token or "web",
             "added": time.time(),
-            "detail": "1-Click Direct X Publisher" if token in ("web", "") else "X / Twitter API v2",
+            "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "X / Twitter API v2",
             "url": f"https://x.com/{handle.lstrip('@')}"
         }
     elif platform == "linkedin":
@@ -328,7 +330,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "person_id": person_id,
             "access_token": token or "web",
             "added": time.time(),
-            "detail": "1-Click Direct LinkedIn Publisher" if token in ("web", "") else "LinkedIn Video UGC",
+            "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "LinkedIn Video UGC API",
             "url": "https://www.linkedin.com"
         }
     elif platform == "instagram":
@@ -344,7 +346,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "name": handle,
             "access_token": token or "web",
             "added": time.time(),
-            "detail": "1-Click Direct Reels Publisher",
+            "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "Instagram Reels API",
             "url": f"https://www.instagram.com/{handle.lstrip('@')}"
         }
     elif platform == "youtube":
@@ -354,7 +356,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "name": name or "YouTube Channel",
             "access_token": token or "web",
             "added": time.time(),
-            "detail": "YouTube Shorts",
+            "detail": "YouTube Shorts (OAuth API)" if token != "web" else "YouTube Web Shortcut",
             "url": "https://studio.youtube.com"
         }
     elif platform == "tiktok":
@@ -366,7 +368,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "access_token": token or "web",
             "open_id": extra_id or "tiktok_user",
             "added": time.time(),
-            "detail": "1-Click Direct TikTok Publisher" if token in ("web", "") else "TikTok Direct Post",
+            "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "TikTok Direct Post API",
             "url": f"https://www.tiktok.com/{handle}"
         }
     else:

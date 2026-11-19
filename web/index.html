@@ -1702,10 +1702,12 @@ async function makeClips() {
 function scoreCls(s) { return s >= 80 ? "s-hi" : s >= 60 ? "s-mid" : ""; }
 function postPills(c) {
   return Object.values(c.posts || {}).filter(p => p.status !== "cancelled").map(p => {
-    const cls = p.status === "posted" ? "ok" : p.status === "failed" ? "bad" : "warn";
-    const when = p.status === "scheduled" ? `${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}` : p.status;
+    const isPosted = p.status === "posted" && p.remote_id && p.remote_id !== "web";
+    const isFailed = p.status === "failed";
+    const cls = isPosted ? "ok" : isFailed ? "bad" : "warn";
+    const when = p.status === "scheduled" ? `${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}` : isPosted ? "posted" : p.status;
     const txt = `${esc(p.account_name)} · ${when}`;
-    return p.url ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>` : `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
+    return p.url && isPosted ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>` : `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
   }).join("");
 }
 function clipHtml(j, c) {
@@ -1957,7 +1959,7 @@ function drawOverview() {
   const sum = k => o.creators.reduce((a, r) => a + r[k], 0);
   const d14 = k => (o.daily || []).reduce((a, d) => a + d[k], 0);
   const state = r => r.state === "recording" ? `<span class="pill live"><span class="dot"></span>Recording</span>` : r.state === "waiting" ? `<span class="pill warn">Waiting for live</span>` : `<span class="pill">Idle</span>`;
-  const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}</span>`;
+  const pst = p => (p.status === "posted" && p.remote_id && p.remote_id !== "web") ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}</span>`;
   const steps = nextSteps(o);
   put(box, `<div class="tiles">
       <div class="tile"><i>${ic("radio")}</i><b>${o.recording}</b><span>Recording now</span></div>
@@ -2119,9 +2121,13 @@ async function drawSettings() {
     if (tab === "apps") {
       const conn = S.accounts || [];
       const mine = plat => conn.filter(a => (a.platform || a.label || "").toLowerCase().includes(plat));
-      const listOf = arr => arr.length ? `<div class="applist">${arr.map(a => `<div><span class="pill ok">Connected</span><b>${esc(a.name)}</b><span class="sub">${esc(a.detail || "")}</span>
+      const listOf = arr => arr.length ? `<div class="applist">${arr.map(a => {
+        const isApi = a.has_api || (a.access_token && a.access_token !== "web");
+        const pill = isApi ? `<span class="pill ok">⚡ API Auto-Post</span>` : `<span class="pill">🌐 Web Shortcut</span>`;
+        return `<div>${pill}<b>${esc(a.name)}</b><span class="sub">${esc(a.detail || "")}</span>
           ${a.url ? `<a class="btn sm ghost" href="${esc(a.url)}" target="_blank" rel="noopener" title="Open in browser">${ic("upright")}Open</a>` : ""}
-          <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}">Disconnect</button></div>`).join("")}</div>` : "";
+          <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}">Disconnect</button></div>`;
+      }).join("")}</div>` : "";
       const yt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>';
       const ig = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg>';
       const tt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .59.04.86.13v-3.5a6.37 6.37 0 0 0-.86-.05A6.34 6.34 0 0 0 3.15 15.7a6.34 6.34 0 0 0 10.86 4.43 6.3 6.3 0 0 0 1.81-4.43V8.73a8.2 8.2 0 0 0 4.77 1.52V6.8a4.85 4.85 0 0 1-1-.11z"/></svg>';
@@ -2224,12 +2230,12 @@ function openDirectConnect(pf) {
     </div>
     <p class="help" style="margin-top:0">Connect <b>${esc(cfg[0])}</b> to Clipsart instantly. No developer credentials required!</p>
     <div style="background:var(--card-sub);border:1px solid var(--line);border-radius:8px;padding:12px;margin:12px 0">
-      <p style="margin:0 0 8px 0;font-size:13px;line-height:1.4"><b>⚡ Zero-setup Fast Connect:</b> Enter your account handle or creator name. Clipsart connects in 1 second!</p>
+      <p style="margin:0 0 8px 0;font-size:13px;line-height:1.4"><b>🌐 Fast Web Shortcut:</b> Saves your handle for 1-Click Web Publishing in the Clip Editor. No API keys needed!</p>
       <label class="f" style="margin-bottom:0">${esc(cfg[2])}<input id="dc_name" placeholder="${esc(cfg[3])}" autocomplete="off" autofocus></label>
     </div>
     <details style="margin:12px 0;border:1px dashed var(--line);border-radius:8px;padding:10px 12px">
-      <summary style="cursor:pointer;font-size:12px;color:var(--text-sub);font-weight:600">Advanced: 24/7 API Background Posting (Optional)</summary>
-      <p class="sub" style="margin:8px 0">${cfg[8] || "Paste developer credentials below only if you want 24/7 automated background posting."}</p>
+      <summary style="cursor:pointer;font-size:12px;color:var(--text-sub);font-weight:600">⚡ Developer Mode: Automated API Token (Optional)</summary>
+      <p class="sub" style="margin:8px 0">${cfg[8] || "Paste developer credentials below only if you want 24/7 automated background posting via API."}</p>
       ${cfg[4] ? `<label class="f" style="margin-top:8px">${esc(cfg[4])}<input id="dc_extra" placeholder="${esc(cfg[5])}" autocomplete="off" spellcheck="false"></label>` : ""}
       <label class="f" style="margin-top:8px">${esc(cfg[6])}<input id="dc_token" type="password" placeholder="${esc(cfg[7])}" autocomplete="off" spellcheck="false"></label>
     </details>
@@ -2350,30 +2356,37 @@ function drawClipDlg(full) {
 
           <div id="dposts" class="row" style="gap:4px"></div>
 
-          ${S.accounts.length ? `<div style="background:var(--card-sub);border:1px solid var(--line);border-radius:8px;padding:12px">
-            <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-              <span>⚡ Post to Connected Accounts</span>
-            </div>
-            <div class="row" style="gap:8px;flex-wrap:wrap">
-              ${S.accounts.map(a => {
-                const isApi = a.access_token && a.access_token !== "web";
-                const badge = isApi ? `<span class="pill ok" style="font-size:10px;padding:1px 6px">⚡ Auto-Post API</span>` : `<span class="pill" style="font-size:10px;padding:1px 6px">📋 1-Click Web</span>`;
-                return `<label class="ck" style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" data-pacc value="${esc(a.id)}"><span>${esc(a.label)} · ${esc(a.name)}</span> ${badge}</label>`;
-              }).join("")}
-            </div>
-            <div class="row" style="margin-top:12px"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>
-            <h4 style="margin:14px 0 6px 0;font-size:12px;color:var(--text-sub)">Schedule for later</h4>
-            <label class="f" style="margin:0"><input id="post-at" type="datetime-local"></label>
-            <p class="help" id="post-zone" style="margin:4px 0 8px 0"></p>
-            <div class="row" style="gap:8px"><button class="btn sm" data-act="postschedule">${ic("clock")}Schedule post</button><a class="btn ghost sm" href="/api/calendar/feed.ics" download="clipsart-calendar.ics" title="Sync scheduled posts to your Google Calendar, Apple Calendar or Outlook">${ic("clock")}Calendar Feed (.ics)</a></div>
-          </div>`
-          : `<p class="help">No accounts connected yet. Connect one in Settings &rarr; Connected apps.</p>`}
+          ${(() => {
+            const apiAccs = (S.accounts || []).filter(a => a.has_api || (a.access_token && a.access_token !== "web"));
+            if (apiAccs.length) {
+              return `<div style="background:var(--card-sub);border:1px solid var(--line);border-radius:8px;padding:12px">
+                <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                  <span>⚡ Auto-Post via API (Background Upload)</span>
+                </div>
+                <div class="row" style="gap:8px;flex-wrap:wrap">
+                  ${apiAccs.map(a => `<label class="ck" style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" data-pacc value="${esc(a.id)}"><span>${esc(a.label)} · ${esc(a.name)}</span> <span class="pill ok" style="font-size:10px;padding:1px 6px">⚡ Auto-Post API</span></label>`).join("")}
+                </div>
+                <div class="row" style="margin-top:12px"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>
+                <h4 style="margin:14px 0 6px 0;font-size:12px;color:var(--text-sub)">Schedule for later</h4>
+                <label class="f" style="margin:0"><input id="post-at" type="datetime-local"></label>
+                <p class="help" id="post-zone" style="margin:4px 0 8px 0"></p>
+                <div class="row" style="gap:8px"><button class="btn sm" data-act="postschedule">${ic("clock")}Schedule post</button><a class="btn ghost sm" href="/api/calendar/feed.ics" download="clipsart-calendar.ics" title="Sync scheduled posts to your Google Calendar, Apple Calendar or Outlook">${ic("clock")}Calendar Feed (.ics)</a></div>
+              </div>`;
+            } else {
+              return `<div style="background:var(--card-sub);border:1px solid var(--line);border-radius:8px;padding:12px">
+                <div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+                  <span>⚡ Auto-Post via API</span>
+                </div>
+                <p class="help" style="margin:0">No accounts connected for automated API upload. Connect YouTube in Settings, or use 1-Click Direct Web Publish below.</p>
+              </div>`;
+            }
+          })()}
 
           <div style="padding:12px;background:var(--card-sub);border:1px solid var(--line);border-radius:8px">
             <div style="font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">
               <span style="display:inline-flex;color:var(--primary, #347A3D)">${ic("bolt")}</span>
               <span>1-Click Direct Web Publish</span>
-              <small style="color:var(--text-sub);font-weight:normal">(Copies caption & tags, opens creator studio directly)</small>
+              <small style="color:var(--text-sub);font-weight:normal">(Copies caption, downloads MP4 & opens upload screen)</small>
             </div>
             <div class="row" style="gap:6px;flex-wrap:wrap">
               <button class="btn sm" data-act="quickshare" data-pf="instagram" title="Copy caption & open Instagram Create">${ic("upright")}Instagram Reels</button>
@@ -2897,6 +2910,14 @@ document.addEventListener("click", async e => {
       try {
         await navigator.clipboard.writeText(text);
       } catch (e) {}
+      if (c.file) {
+        const aDl = document.createElement("a");
+        aDl.href = `/media/${j.id}/${c.file}?download=1`;
+        aDl.download = c.file;
+        document.body.appendChild(aDl);
+        aDl.click();
+        aDl.remove();
+      }
       const urls = {
         instagram: "https://www.instagram.com/create/style/",
         tiktok: "https://www.tiktok.com/creator-center/upload",
@@ -2906,7 +2927,7 @@ document.addEventListener("click", async e => {
       };
       const pfNames = {instagram:"Instagram Reels", tiktok:"TikTok", facebook:"Facebook Reels", twitter:"X (Twitter)", linkedin:"LinkedIn Video"};
       if (urls[pf]) window.open(urls[pf], "_blank");
-      toast(`Caption & tags copied to clipboard! Opening ${pfNames[pf] || pf} studio...`, "ok");
+      toast(`Caption copied & video downloading! Opening ${pfNames[pf] || pf} studio...`, "ok");
       return;
     }
     if (a === "accremove") {
@@ -2941,40 +2962,19 @@ document.addEventListener("click", async e => {
     }
     if (a === "postnow" || a === "postqueue" || a === "postschedule") {
       const accIds = $$("#clipdlg [data-pacc]:checked").map(i => i.value);
-      if (!accIds.length) return toast("Tick at least one account first.", "bad");
+      if (!accIds.length) return toast("Tick at least one API account first.", "bad");
       const chosen = (S.accounts || []).filter(x => accIds.includes(x.id));
-      const webAccs = chosen.filter(x => !x.access_token || x.access_token === "web");
-
-      if (a === "postnow" && !await ask("Post now?", `This clip goes to ${accIds.length} account${accIds.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
-      if (a === "postschedule" && !$("#post-at")?.value) return toast("Choose a date and time first.", "bad");
-
-      if (webAccs.length) {
-        const j = jobOf(D.jid), c = j?.clips.find(x => x.id === D.cid);
-        const text = `${c?.title || c?.hook || "Clip"}\n\n${c?.description || ""}\n\n${(c?.hashtags || []).map(t => "#" + t.replace(/^#/, "")).join(" ")}`.trim();
-        try { await navigator.clipboard.writeText(text); } catch {}
-        webAccs.forEach(acc => {
-          const urls = {
-            instagram: "https://www.instagram.com/create/style/",
-            tiktok: "https://www.tiktok.com/creator-center/upload",
-            facebook: "https://www.facebook.com/reels/create/",
-            twitter: "https://x.com/compose/post?text=" + encodeURIComponent(text.slice(0, 270)),
-            linkedin: "https://www.linkedin.com/feed/?shareActive=true&text=" + encodeURIComponent(text.slice(0, 1000))
-          };
-          const targetUrl = urls[acc.platform] || acc.url || ("https://www." + acc.platform + ".com");
-          window.open(targetUrl, "_blank");
-        });
+      const nonApi = chosen.filter(x => !x.has_api && (!x.access_token || x.access_token === "web"));
+      if (nonApi.length) {
+        return toast(`Cannot auto-post to ${nonApi.map(x => x.name).join(", ")}: No API access token. Use 1-Click Direct Web Publish instead.`, "bad");
       }
+      if (a === "postnow" && !await ask("Post now?", `This clip will be uploaded directly via API to ${chosen.map(x => x.name).join(", ")}.`, "Post now")) return;
+      if (a === "postschedule" && !$("#post-at")?.value) return toast("Choose a date and time first.", "bad");
 
       await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accIds, now:a === "postnow",
         ...(a === "postschedule" ? {scheduled_at: $("#post-at").value, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"} : {})});
 
-      if (webAccs.length && chosen.length === webAccs.length) {
-        toast(`Caption copied! Opening ${webAccs.map(x => x.name).join(", ")} studio — drop your clip to post.`, "ok");
-      } else if (webAccs.length) {
-        toast(`Posting API accounts in background & opening studio for ${webAccs.map(x => x.name).join(", ")}!`, "ok");
-      } else {
-        toast(a === "postnow" ? "Posting in background via API" : a === "postschedule" ? "Post scheduled" : "Added to the queue", "ok");
-      }
+      toast(a === "postnow" ? "Uploading in background via API…" : a === "postschedule" ? "Post scheduled!" : "Added to posting queue!", "ok");
       return tick();
     }
   } catch (err) { b.disabled = false; toast(err.message, "bad"); }

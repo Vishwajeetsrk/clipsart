@@ -113,6 +113,8 @@ def enqueue(job, clip, account_ids, now=False, scheduled_at=None, timezone=None)
             acc = accounts.get(aid)
             if not acc:
                 continue
+            if acc.get("access_token") == "web":
+                raise ValueError(f"'{acc.get('name', 'Account')}' is connected as a 1-Click Web shortcut (no API token). Use 1-Click Direct Web Publish instead.")
             if any(p["job"] == job["id"] and p["clip"] == clip["id"] and p["account"] == aid
                    and p["status"] in OPEN + ("posted",) for p in _mine()):
                 continue  # never post the same clip to the same account twice
@@ -188,12 +190,7 @@ def _post(p):
         creator = creators.get(job["creator"]) or dict(creators.DEFAULTS, name="clips")
         title, cap = clip.get("title") or clip.get("hook") or "Clip", _caption(clip, creator)
         if acc.get("access_token") in ("web", ""):
-            p.update(status="posted", posted_at=time.time(), remote_id="web", url=acc.get("url", ""), error=None)
-            if p.get("creator"):
-                creators.log(p["creator"], f"Ready for 1-click web dispatch on {acc.get('name', 'account')}: {title}")
-            _save()
-            _mirror(p)
-            return
+            raise RuntimeError(f"'{acc.get('name', 'Account')}' has no automated API token for background posting. Use 1-Click Direct Web Publish.")
         if acc["platform"] == "youtube":
             rid, url = accounts.youtube_upload(acc, path, title, cap + "\n\n#Shorts", clip.get("hashtags", []), creator["privacy"])
         elif acc["platform"] == "instagram":
