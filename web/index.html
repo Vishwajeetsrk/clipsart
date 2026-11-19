@@ -598,14 +598,21 @@ dialog::backdrop{background:rgba(14,12,11,.42);animation:fadein .16s ease}
 .dlg{padding:24px;width:450px;max-width:100%;display:flex;flex-direction:column;gap:14px}
 .dlg h2{font-size:18px;font-weight:600;color:var(--brand-ink)}
 .dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
-.editor{display:grid;grid-template-columns:minmax(240px,340px) minmax(300px,450px);max-height:calc(100vh - 48px)}
-.editor .stage{background:#17110E;display:grid;place-items:center;position:relative;min-height:320px}
+.editor{display:grid;grid-template-columns:minmax(280px,350px) minmax(320px,500px);max-height:calc(100vh - 48px);width:100%;border-radius:inherit;overflow:hidden}
+.editor .stage{background:#110E0C;display:grid;place-items:center;position:relative;min-height:300px;overflow:hidden}
 .editor video,.editor .stage img{width:100%;max-height:calc(100vh - 48px);aspect-ratio:9/16;object-fit:contain;display:block}
-.trimline{display:grid;grid-template-columns:36px minmax(0,1fr);gap:8px;align-items:center}.trimline span{font-size:12px;color:var(--dim)}.trimline input{width:100%;accent-color:var(--brand)}
-.editor audio{width:100%;height:38px}
-.editor .panel{padding:22px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.trimline{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center}.trimline span{font-size:12px;font-weight:600;color:var(--dim)}.trimline input{width:100%;accent-color:var(--brand);margin:0}
+.editor audio{width:100%;height:38px;border-radius:8px}
+.editor .panel{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;-webkit-overflow-scrolling:touch}
 .editor h3{font-size:13px;font-weight:600;color:var(--dim);margin-top:6px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two.time-inputs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.clip-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:12px;border-top:1px solid var(--line);position:sticky;bottom:0;background:#fff;z-index:5}
+.clip-actions .btn{flex:1 1 auto;min-width:120px;justify-content:center}
+.pub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
+.pub-grid .btn{justify-content:center;font-size:12px;padding:6px 10px;height:36px}
+.clip-export-bar{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
+.clip-export-bar .btn{flex:1 1 calc(50% - 3px);justify-content:center;font-size:12px}
 #toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:50}
 .toast{background:var(--frame);color:var(--frame-text);border:1px solid var(--frame-2);border-radius:var(--r);padding:12px 16px;max-width:380px;animation:rise .2s ease;display:flex;gap:10px;align-items:center;font-weight:500}
 .toast::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
@@ -754,7 +761,39 @@ dialog[open]{animation:fadein .16s ease}
   .content{padding:20px 16px 56px}
   .editor{grid-template-columns:1fr;overflow:auto}.editor video{max-height:52vh}
 }
-@media (max-width:560px){.composer-bar .btn.primary{width:100%;height:42px}.topbar #actions .btn{height:34px;padding:0 10px;font-size:13px}.topbar h1{font-size:17px}.hero{padding:40px 14px 28px}.hero h2{font-size:26px}.hint{display:none}.tiles{gap:10px}.tile{padding:14px}.two{grid-template-columns:1fr}}
+@media (max-width:768px){
+  dialog#clipdlg{width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:100dvh!important;margin:0!important;border:0!important;border-radius:0!important}
+  .editor{display:flex!important;flex-direction:column!important;height:100dvh!important;max-height:100dvh!important;width:100%!important;overflow:hidden!important}
+  .editor .stage{flex:0 0 auto!important;height:34vh!important;max-height:36vh!important;min-height:170px!important;background:#0A0807!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important;padding:4px 0!important;overflow:hidden!important}
+  .editor video,.editor .stage img{height:100%!important;max-height:34vh!important;width:auto!important;max-width:100%!important;aspect-ratio:9/16!important;margin:0 auto!important;object-fit:contain!important}
+  .editor .panel{flex:1 1 auto!important;height:calc(66vh - env(safe-area-inset-bottom, 0px))!important;overflow-y:auto!important;padding:12px 14px 28px!important;gap:12px!important;-webkit-overflow-scrolling:touch!important}
+  .editor .tabs{display:flex!important;gap:4px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important;flex-wrap:nowrap!important;margin:0 0 6px 0!important;padding-bottom:4px!important;border-bottom:1px solid var(--line)!important}
+  .editor .tabs::-webkit-scrollbar{display:none}
+  .editor .tabs .tabbtn{flex:1 0 auto!important;min-width:100px!important;height:38px!important;padding:0 8px!important;font-size:12px!important;justify-content:center!important;white-space:nowrap!important}
+  .clip-actions{position:sticky;bottom:0;background:#fff;padding:10px 0 calc(8px + env(safe-area-inset-bottom, 0px));margin-top:auto;border-top:1px solid var(--line);box-shadow:0 -4px 12px rgba(0,0,0,0.06);display:flex;flex-wrap:wrap;gap:8px;z-index:10}
+  .clip-actions .btn.primary{flex:1 1 100%!important;order:-1!important;height:42px!important;font-size:14px!important;font-weight:700!important}
+  .clip-actions .btn{flex:1 1 calc(50% - 4px)!important;justify-content:center!important;height:38px!important;font-size:13px!important}
+  .clip-actions .btn[data-t="publish"]{flex:1 1 100%!important;margin-left:0!important;height:36px!important}
+  .pub-grid{grid-template-columns:1fr 1fr!important}
+  .clip-export-bar{display:flex!important;flex-wrap:wrap!important;gap:6px!important}
+  .clip-export-bar .btn{flex:1 1 calc(50% - 3px)!important;justify-content:center!important;font-size:12px!important}
+}
+@media (max-width:560px){
+  .composer-bar .btn.primary{width:100%;height:42px}
+  .topbar #actions .btn{height:34px;padding:0 10px;font-size:13px}
+  .topbar h1{font-size:17px}
+  .hero{padding:40px 14px 28px}
+  .hero h2{font-size:26px}
+  .hint{display:none}
+  .tiles{gap:10px}
+  .tile{padding:14px}
+  .two{grid-template-columns:1fr}
+  .two.time-inputs{grid-template-columns:1fr 1fr!important}
+  input,select,textarea{font-size:16px!important}
+  input[type="file"]{max-width:100%!important;font-size:12px!important}
+  dialog:not(#clipdlg){max-width:calc(100vw - 16px)!important;width:100%!important;margin:auto!important}
+  .dlg{padding:18px 16px!important;width:100%!important}
+}
 /* ---------- guided tour: dims the page, cuts a soft-moving hole around what each step talks about */
 #tour{position:fixed;inset:0;z-index:200}
 .tr-block{position:absolute;inset:0}
@@ -2301,7 +2340,7 @@ function drawClipDlg(full) {
           <p class="help">Caption styles: <b>Hormozi Gold</b> · <b>Beast Green</b> · <b>Cyberpunk</b> · <b>Karaoke</b> · <b>Minimalist</b> · Bounce · Hype · Clean · Neon Glow · Bold Box · Cinematic</p>
           <div class="two"><label class="f">Video effect<select data-f="effect">${opts({none:"Original", warm:"Warm", vivid:"Vivid", mono:"Black & white", vintage:"Vintage"}, c.effect || "none")}</select></label>
             <label class="f">Animation<select data-f="animation">${opts({none:"None", pulse:"Slow pulse"}, c.animation || "none")}</select></label></div>
-          <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" min="${c.start}" max="${c.end - 3}" value="${c.start}"></label>
+          <div class="two time-inputs"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" min="${c.start}" max="${c.end - 3}" value="${c.start}"></label>
             <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" min="${c.start + 3}" max="${c.end}" value="${c.end}"></label></div>
           <div class="trimline"><span>In</span><input id="trim-in" type="range" min="${c.start}" max="${c.end - 3}" step="0.5" value="${c.start}" aria-label="Trim start time"></div>
           <div class="trimline"><span>Out</span><input id="trim-out" type="range" min="${c.start + 3}" max="${c.end}" step="0.5" value="${c.end}" aria-label="Trim end time"></div>
@@ -2330,7 +2369,7 @@ function drawClipDlg(full) {
               <label class="f">Vertical position<input data-f="overlay_y" type="range" min="0" max="1" step="0.01" value="${c.overlay_y ?? 0.82}"></label></div>
           </details>
 
-          <div class="row" style="margin-top:12px;gap:8px">
+          <div class="clip-actions">
             <button class="btn" data-act="preview">${ic("play")}Preview edits</button>
             <button class="btn primary" data-act="remake">${ic("scissors")}Render final clip</button>
             <button class="btn ghost" type="button" data-act="cliptab" data-t="publish" style="margin-left:auto">${ic("send")}Next: Publish &rarr;</button>
@@ -2346,7 +2385,7 @@ function drawClipDlg(full) {
           <label class="f">Your custom image<input id="thumb-image" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
           <label class="f">Thumbnail title text<input id="thumb-title" maxlength="80" placeholder="Optional title on the cover" value="${esc(c.thumbnail_text || c.title || "")}"></label>
           <label class="f">Text style<select id="thumb-style">${opts({bold:"Bold", clean:"Clean", neon:"Neon"}, c.thumbnail_style || "bold")}</select></label>
-          <div class="row" style="margin-top:12px"><button class="btn primary" data-act="thumbsave">Save thumbnail</button><button class="btn" data-act="thumbreset" ${c.thumbnail_custom ? "" : "disabled"}>Restore generated</button></div>
+          <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="thumbsave" style="flex:1 1 140px">Save thumbnail</button><button class="btn" data-act="thumbreset" style="flex:1 1 140px" ${c.thumbnail_custom ? "" : "disabled"}>Restore generated</button></div>
         </div>
 
         <!-- Tab 3: Publish & Share -->
@@ -2388,7 +2427,7 @@ function drawClipDlg(full) {
               <span>1-Click Direct Web Publish</span>
               <small style="color:var(--text-sub);font-weight:normal">(Copies caption, downloads MP4 & opens upload screen)</small>
             </div>
-            <div class="row" style="gap:6px;flex-wrap:wrap">
+            <div class="pub-grid">
               <button class="btn sm" data-act="quickshare" data-pf="instagram" title="Copy caption & open Instagram Create">${ic("upright")}Instagram Reels</button>
               <button class="btn sm" data-act="quickshare" data-pf="tiktok" title="Copy caption & open TikTok Upload Studio">${ic("upright")}TikTok</button>
               <button class="btn sm" data-act="quickshare" data-pf="facebook" title="Copy caption & open Facebook Reels">${ic("upright")}Facebook Reels</button>
@@ -2397,7 +2436,7 @@ function drawClipDlg(full) {
             </div>
           </div>
 
-          <div class="row" style="margin-top:auto;padding-top:10px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px">
+          <div class="clip-export-bar">
             ${c.status === "done" ? `<a class="btn primary sm" href="${m}${esc(c.file)}?download=1">${ic("down")}Download MP4</a>
             <button class="btn ghost sm" data-act="communitydrop" title="Drop video directly to configured Discord or Telegram">${ic("send")}Drop MP4</button>
             <button class="btn ghost sm" data-act="notionsync" title="Sync clip to Notion Kanban board">${ic("link")}Notion</button>
