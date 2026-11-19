@@ -23,7 +23,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from . import admin as admins
 from . import account, load
-from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live, media, notion, posting,
+from . import (accounts, ai, alerts, auth, cloud_sync, config, creators, ctx, db, jobs, live, media, notion, posting,
                profiles, render, safe, transcribe, usage)
 
 from . import tools as _tools  # noqa: E402
@@ -1940,6 +1940,21 @@ def notion_test():
         return {"ok": True, "title": (r.json().get("title") or [{}])[0].get("plain_text", "Notion Database")}
     except Exception as e:
         raise HTTPException(400, str(e))
+
+
+@app.post("/api/cloud-sync/export/{jid}/{cid}")
+def cloud_sync_export_clip(jid: str, cid: str):
+    """Copies a rendered clip and its cover into the configured local cloud sync folder (Google Drive, Dropbox, etc.)."""
+    if not cloud_sync.configured():
+        raise HTTPException(400, "Configure your Cloud Backup Directory in Settings first.")
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip or clip.get("status") != "done":
+        raise HTTPException(404, "Clip not found or not rendered yet")
+    dest = cloud_sync.export_clip(job, clip)
+    if not dest:
+        raise HTTPException(400, "Could not export clip (check that the folder exists and is writable).")
+    return {"ok": True, "path": dest, "message": f"Exported to {Path(dest).name}"}
 
 
 # ================================================================ admin (only accounts marked as admin in the database)

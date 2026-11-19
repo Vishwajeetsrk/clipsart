@@ -193,35 +193,62 @@ The current editor is a form with the rendered video preview. It does not offer 
 ## 11. Social Media & Workflow Integrations Expansion (2026-11-19)
 
 ### 11.1 Goal
-Expand Clipsart's distribution and publishing capabilities beyond the initial core (YouTube Shorts, TikTok, Instagram Reels) to empower creators with community clip drops, cross-platform publishing, and workflow synchronization.
+Expand Clipsart's distribution and publishing capabilities across four focused pillars:
+1. **Option 1 (Highest Reach)**: X / Twitter + LinkedIn Video (optimal for podcasts, business, debate, and educational clips).
+2. **Option 2 (Quickest to Deploy)**: Facebook Reels & Pages (leveraging existing Meta Developer App infrastructure alongside Instagram).
+3. **Option 3 (Creator Workflow)**: Notion Kanban Content Board Sync + Google Drive / Cloud Folder Auto-Backup.
+4. **Option 4 (Community)**: Direct MP4 Video Drops into Discord Webhooks & Telegram Bot Channels.
 
-### 11.2 Scope & Requirements
-1. **Discord & Telegram Direct MP4 Video Drops (P1 - Community Delivery)**:
-   - Upgrade existing text-only alert mechanisms in `studio/alerts.py` to support full video clip delivery (`send_clip_drop`).
-   - For **Discord**: When a clip is ready or explicitly shared, send a rich webhook payload with embed and multipart file attachment (`.mp4` under 25MB limit) or signed stream URL.
-   - For **Telegram**: Dispatch high-definition vertical video directly using Telegram Bot API `sendVideo` with title, hook, and hashtags in caption.
-   - Configurable per-creator or globally in Settings.
+### 11.2 Pillar Specifications & Requirements
 
-2. **Facebook Reels & Pages Integration (P1 - Social Publishing)**:
-   - Leverage existing Meta App OAuth infrastructure with `pages_show_list,pages_read_engagement,pages_manage_posts`.
-   - Add `"facebook": "Facebook Reels"` to `PLATFORM_NAMES`.
-   - Implement direct publishing via Facebook Graph API video reels session endpoints (`/{page_id}/video_reels`).
+#### Option 1: X / Twitter & LinkedIn Video Publishing
+- **X / Twitter API v2**:
+  - Direct chunked media upload via `https://upload.twitter.com/1.1/media/upload.json`:
+    - `command=INIT`: declares total bytes, MIME type (`video/mp4`), and category (`tweet_video`).
+    - `command=APPEND`: streams 4 MB chunks sequentially with `segment_index`.
+    - `command=FINALIZE`: completes the upload and verifies processing state.
+  - Tweet publishing: `POST https://api.twitter.com/2/tweets` attaching `media.media_ids` and formatted post copy (truncated cleanly to 280 characters with hashtags).
+- **LinkedIn Video via Community Management API**:
+  - Two-phase upload via `https://api.linkedin.com/v2/assets?action=registerUpload` requesting `urn:li:digitalmediaRecipe:feedshare-video`.
+  - Stream binary video to the signed upload URL.
+  - Publish via `POST https://api.linkedin.com/v2/ugcPosts` with `author=urn:li:person:{id}` or organizational URN, `shareMediaCategory=VIDEO`, and clean description.
 
-3. **X / Twitter Video Publishing (P1 - Social Publishing)**:
-   - Add `"twitter": "X (Twitter)"` to `PLATFORM_NAMES`.
-   - Support chunked media upload (`media/upload.json` INIT, APPEND, FINALIZE) and Tweet creation (`POST /2/tweets`) with video attachment.
+#### Option 2: Facebook Reels (Meta Graph API)
+- Reuses existing Meta Developer App credentials (`CLIPSART_IG_APP_ID`, `CLIPSART_IG_APP_SECRET`) or standalone Facebook Page access tokens.
+- Publishing workflow:
+  - `POST https://graph.facebook.com/v19.0/{page_id}/video_reels` with `upload_phase=start`.
+  - Streams binary to returned `upload_url`.
+  - `POST https://graph.facebook.com/v19.0/{page_id}/video_reels` with `upload_phase=finish`, `video_state=PUBLISHED`, and caption up to 2,200 characters.
 
-4. **Notion Content Kanban Sync (P2 - Workflow Productivity)**:
-   - Connect to creator's Notion database using official Notion API integration token.
-   - Automatically create/update a Kanban card in the creator's "Content Pipeline" board when a clip is generated, scheduled, or posted.
-   - Properties synced: Clip Title, Hook, Status ("Ready", "Scheduled", "Posted"), Video Duration, Score, and Target Channels.
+#### Option 3: Creator Workflow (Notion Kanban & Google Drive / Cloud Auto-Backup)
+- **Notion Kanban Sync**:
+  - Connects using internal Notion Integration Token and Database ID (`notion_token`, `notion_database_id`).
+  - Creates cards on the creator's Notion Kanban board with:
+    - `Name` (title)
+    - `Hook` (rich text)
+    - `Status` ("Ready" / "In Progress" / "Scheduled" / "Posted")
+    - `Duration` (seconds)
+    - `Score` (AI rating)
+    - `Tags` (multi-select)
+- **Google Drive / Cloud Folder Auto-Backup**:
+  - Dedicated configuration key: `cloud_sync_folder` (e.g., `G:\My Drive\Clipsart` or Dropbox local sync folder).
+  - Background daemon safely exports completed 1080p clips to `{cloud_sync_folder}/{creator}/{clip_id}_{title}.mp4`.
+  - Features file sanitization, pre-copy disk space check, atomic temp write and rename.
 
-5. **Cloud Folder Auto-Export (P2 - Storage & Backup)**:
-   - Allow creators on desktop to designate a Google Drive or Dropbox sync directory (e.g. `G:\My Drive\Clipsart`).
-   - Automatically export rendered 1080p clips to the designated local cloud sync path on render completion.
+#### Option 4: Community MP4 Video Drops (Discord & Telegram)
+- **Discord Webhook**:
+  - Supports direct multipart form uploads (`files={"file": (filename, fp, "video/mp4")}`) up to Discord's 25 MB payload limit.
+  - Dispatches title, hook, and hashtags in `payload_json`.
+  - When clip size > 25 MB, falls back gracefully to rich embed with stream download link.
+- **Telegram Bot API**:
+  - Direct video delivery using `https://api.telegram.org/bot{token}/sendVideo`.
+  - Sends high-definition vertical video as streamable MP4 with caption (up to 1,024 characters).
+- **Execution Modes**:
+  - 1-Click manual drop button in the Clip Editor dialog (`POST /api/alerts/drop/{jid}/{cid}`).
+  - Automatic drop upon render completion when `auto_drop_community=True`.
 
 ### 11.3 Engineering & Security Guardrails
-- **Zero Breaking Changes**: Existing YouTube, Instagram, TikTok, and Google Calendar workflows remain 100% untouched.
-- **Fail-Safe & Non-Blocking**: External API timeouts (Discord, Telegram, X, Notion) must never block local rendering or freeze queue progression.
+- **Zero Breaking Changes**: Legacy YouTube, Instagram, TikTok, and Google Calendar workflows remain 100% backward compatible.
+- **Fail-Safe & Non-Blocking**: External API timeouts or network outages (Discord, Telegram, X, LinkedIn, Notion) must never block local rendering or freeze queue progression.
 - **Secret Protection**: API tokens, bot keys, and client secrets remain strictly in secure user settings (`accounts.json` / `.env`) and are never exposed in logs or client-facing responses.
 - **Offline / Local Fallback**: When offline or if API credentials are not set, all video creation, editing, local downloads, and calendar feeds function flawlessly.

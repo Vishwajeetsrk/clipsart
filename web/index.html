@@ -2174,6 +2174,11 @@ async function drawSettings() {
           <label class="f">Notion database ID<input data-s="notion_database_id" value="${esc(s.notion_database_id || "")}" placeholder="32-character database ID" autocomplete="off" spellcheck="false"></label>
         </div>
         <div class="row" style="margin-top:16px"><button class="btn primary" data-act="ssave">Save settings</button><button class="btn" data-act="testnotion">${ic("link")}Test Notion connection</button></div>
+        <h2 style="margin-top:28px">Cloud Storage Auto-Backup (Google Drive / Dropbox)</h2><p class="help">Automatically back up rendered MP4 clips and thumbnails directly into your local cloud sync directory (Google Drive, Dropbox, OneDrive, or local NAS).</p>
+        <div class="fields">
+          <label class="f">Cloud sync directory path<input data-s="cloud_sync_folder" value="${esc(s.cloud_sync_folder || "")}" placeholder="e.g. C:\Users\Name\Google Drive\Clips or /Users/name/Dropbox/Clips" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="row" style="margin-top:16px"><button class="btn primary" data-act="ssave">Save settings</button></div>
       </section>`;
     }
   } catch (e) { body.innerHTML = `<div class="set-load">${esc(e.message)}</div>`; }
@@ -2250,7 +2255,8 @@ function drawClipDlg(full) {
         <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px">
           ${c.status === "done" ? `<a class="btn" href="${m}${esc(c.file)}?download=1">${ic("down")}Download</a>
           <button class="btn ghost sm" data-act="communitydrop" title="Drop video directly to configured Discord or Telegram">${ic("send")}Drop MP4</button>
-          <button class="btn ghost sm" data-act="notionsync" title="Sync clip to Notion Kanban board">${ic("link")}Notion</button>` : ""}
+          <button class="btn ghost sm" data-act="notionsync" title="Sync clip to Notion Kanban board">${ic("link")}Notion</button>
+          <button class="btn ghost sm" data-act="cloudexport" title="Save clip to configured Google Drive / Dropbox folder">${ic("folder")}Save to Cloud</button>` : ""}
           <button class="btn" data-act="copy" data-j="${j.id}" data-c="${esc(c.id)}">${ic("copy")}Copy post text</button></div>
       </div></div>`;
   } else if (D.sig !== sig) $("#stage").innerHTML = stage;
@@ -2722,6 +2728,18 @@ document.addEventListener("click", async e => {
         const res = await api(`/api/integrations/notion/sync/${D.jid}/${D.cid}`, {method:"POST"});
         toast("Synced to Notion Kanban board!", "ok");
         if (res.notion?.url) window.open(res.notion.url, "_blank");
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally {
+        b.disabled = false;
+      }
+      return;
+    }
+    if (a === "cloudexport") {
+      b.disabled = true;
+      try {
+        const res = await api(`/api/cloud-sync/export/${D.jid}/${D.cid}`, {method:"POST"});
+        toast(res.message || "Saved to Cloud folder!", "ok");
       } catch (err) {
         toast(err.message, "bad");
       } finally {

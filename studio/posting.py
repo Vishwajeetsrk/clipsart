@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import json
 
-from . import accounts, alerts, config, creators, ctx, jobs, live
+from . import accounts, alerts, cloud_sync, config, creators, ctx, jobs, live
 
 _lock = threading.RLock()
 _FILE = config.DATA_DIR / "posts.json"
@@ -151,6 +151,15 @@ def on_clip_ready(job, clip):
                 args=(clip_path, clip.get("title") or "New Clip", clip.get("hook") or "", _caption(clip, creator_cfg)),
                 daemon=True
             ).start()
+    if cloud_sync.configured() and clip.get("file"):
+        try:
+            threading.Thread(
+                target=ctx.bind(cloud_sync.export_clip),
+                args=(job, clip),
+                daemon=True
+            ).start()
+        except Exception:
+            pass
     if not c or not c["autopost"] or not c["accounts"]:
         return
     if clip.get("score", 0) < c["post_min_score"]:
@@ -188,19 +197,23 @@ def _post(p):
             rid, url = accounts.facebook_upload(acc, path, f"{title}\n\n{cap}", job["id"])
         elif acc["platform"] == "twitter":
             rid, url = accounts.twitter_upload(acc, path, f"{title}\n\n{cap}")
+        elif acc["platform"] == "linkedin":
+            rid, url = accounts.linkedin_upload(acc, path, f"{title}\n\n{cap}", title)
         else:
             raise RuntimeError("That kind of account is no longer supported.")
         p.update(status="posted", posted_at=time.time(), remote_id=rid, url=url, error=None)
-        creators.log(p["creator"], f"Posted to {acc['name']}: {title}")
+        if p.get("creator"):
+            creators.log(p["creator"], f"Posted to {acc.get('name', 'account')}: {title}")
     except Exception as e:  # noqa: BLE001
-        p["tries"] += 1
+        p["tries"] = p.get("tries", 0) + 1
         p["error"] = str(e)[-300:]
         if p["tries"] < 3 and clip and acc:
             p.update(status="scheduled", due_at=time.time() + 600)  # try again in 10 minutes
         else:
             p["status"] = "failed"
-            creators.log(p["creator"], f"Post failed on {p['account_name']}: {p['error']}")
-            alerts.notify(f"post failed on {p['account_name']} ({p['title']}): {p['error'][:200]}", kind="post")
+            if p.get("creator"):
+                creators.log(p["creator"], f"Post failed on {p.get('account_name', acc.get('name', 'account'))}: {p['error']}")
+            alerts.notify(f"post failed on {p.get('account_name', 'account')} ({p.get('title', 'Clip')}): {p['error'][:200]}", kind="post")
     _save()
     _mirror(p)
 

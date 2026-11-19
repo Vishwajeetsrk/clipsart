@@ -25,7 +25,8 @@ _states: dict = {}   # one-time values for the connect redirects: state -> (user
 SECRET_KEYS = ("discord_webhook", "telegram_token", "notion_token")
 SETTING_DEFAULTS = {"discord_webhook": "", "telegram_token": "", "telegram_chat": "", "paused": False,
                     "digest_hour": 8, "last_digest": "", "tour_done": False,
-                    "auto_drop_community": False, "notion_token": "", "notion_database_id": ""}
+                    "auto_drop_community": False, "notion_token": "", "notion_database_id": "",
+                    "cloud_sync_folder": ""}
 
 YT_SCOPES = "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
 IG = "https://graph.instagram.com"
@@ -629,3 +630,48 @@ def twitter_upload(acc, path: Path, text: str) -> tuple:
                                   headers=auth_header, timeout=30), "Posting Tweet").json()
     tweet_id = tweet_res.get("data", {}).get("id") or media_id
     return tweet_id, f"https://twitter.com/i/status/{tweet_id}"
+
+
+def linkedin_upload(acc, path: Path, text: str, title: str = "Clip") -> tuple:
+    """Uploads a video to LinkedIn via Community Management API and creates UGC Post."""
+    token = acc.get("access_token", "")
+    person_id = acc.get("person_id") or acc.get("user_id") or ""
+    headers = {"Authorization": f"Bearer {token}", "X-Restli-Protocol-Version": "2.0.0"}
+
+    init_payload = {
+        "registerUploadRequest": {
+            "recipes": ["urn:li:digitalmediaRecipe:feedshare-video"],
+            "owner": f"urn:li:person:{person_id}" if person_id and not person_id.startswith("urn:") else (person_id or "urn:li:person:me"),
+            "serviceRelationships": [{"relationshipType": "OWNER", "identifier": "urn:li:userGeneratedContent"}]
+        }
+    }
+    reg_res = _check(httpx.post("https://api.linkedin.com/v2/assets?action=registerUpload",
+                                json=init_payload, headers=headers, timeout=30), "Registering LinkedIn upload").json()
+    val = reg_res.get("value", {})
+    asset = val.get("asset")
+    upload_url = (val.get("uploadMechanism", {})
+                  .get("com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest", {})
+                  .get("uploadUrl"))
+
+    if upload_url:
+        with path.open("rb") as f:
+            _check(httpx.put(upload_url, headers={"Authorization": f"Bearer {token}"},
+                             content=f.read(), timeout=120), "Uploading LinkedIn video binary")
+
+    author = f"urn:li:person:{person_id}" if person_id and not person_id.startswith("urn:") else (person_id or "urn:li:person:me")
+    post_payload = {
+        "author": author,
+        "lifecycleState": "PUBLISHED",
+        "specificContent": {
+            "com.linkedin.ugc.ShareContent": {
+                "shareCommentary": {"text": text[:3000]},
+                "shareMediaCategory": "VIDEO",
+                "media": [{"status": "READY", "description": {"text": text[:200]}, "media": asset, "title": {"text": title[:200]}}]
+            }
+        },
+        "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"}
+    }
+    post_res = _check(httpx.post("https://api.linkedin.com/v2/ugcPosts",
+                                 json=post_payload, headers=headers, timeout=30), "Publishing LinkedIn post").json()
+    post_id = post_res.get("id") or asset or "li_post"
+    return post_id, f"https://www.linkedin.com/feed/update/{post_id}"
