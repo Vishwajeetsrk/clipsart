@@ -35,9 +35,20 @@ def delete_clip(jid: str, cid: str) -> bool:
     for name in (clip.get("file"), clip.get("cover")):
         if name:
             (d / "clips" / Path(str(name)).name).unlink(missing_ok=True)
+    music = Path(str(clip.get("music_file") or "")).name
+    if music.startswith(f"{cid}.music-") and Path(music).suffix.lower() in (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"):
+        (d / "clips" / music).unlink(missing_ok=True)
+    overlay = Path(str(clip.get("overlay_file") or "")).name
+    if overlay.startswith(f"{cid}.overlay-") and Path(overlay).suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
+        (d / "clips" / overlay).unlink(missing_ok=True)
+    for preview in (d / "clips").glob(f"{cid}.preview-*.mp4"):
+        preview.unlink(missing_ok=True)
     for stem in {cid, Path(str(clip.get("file") or cid)).stem}:     # the captions and the notes kept beside the clip
         for ext in ("ass", "json"):
             (d / "clips" / f"{stem}.{ext}").unlink(missing_ok=True)
+    for old in (d / "clips").glob(f"{cid}.v*.*"):
+        if old.is_file() and old.suffix.lower() in (".mp4", ".jpg", ".ass"):
+            old.unlink(missing_ok=True)
     src = clip.get("src")
     if src:                                        # the piece of video fetched or recorded just for this clip
         p = Path(src)

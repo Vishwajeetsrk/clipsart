@@ -4,6 +4,7 @@ import json
 import os
 import math
 import queue
+import secrets
 import shutil
 import threading
 import time
@@ -342,9 +343,8 @@ def delete(jid):
     return bool(job)
 
 
-def request_render(jid, cid, changes: dict):
-    job = _jobs[jid]
-    clip = next(c for c in job["clips"] if c["id"] == cid)
+def render_changes(clip, changes: dict) -> dict:
+    """Validate editor changes without modifying the saved clip; previews use the same rules as final renders."""
     new = dict(clip)
     if "captions" in changes:
         new.update(clean_options({"captions": changes["captions"]}))
@@ -358,13 +358,48 @@ def request_render(jid, cid, changes: dict):
         raise ValueError("Those times aren't valid.")
     if not 3 <= new["end"] - new["start"] <= 180:
         raise ValueError("A clip can be 3 to 180 seconds long.")
-    for k in ("hook", "title", "description", "style", "layout"):
+    for k in ("hook", "title", "description", "style", "layout", "effect", "animation"):
         if k in changes:
             new[k] = str(changes[k])[:{"hook": 60, "title": 100, "description": 2000}.get(k, 20)]
     if new.get("style") not in render.STYLES:
         new["style"] = DEFAULTS["style"]
     if new.get("layout") not in render.LAYOUTS:
         new["layout"] = DEFAULTS["layout"]
+    if new.get("effect", "none") not in ("none", "warm", "mono", "vintage", "vivid"):
+        raise ValueError("Choose one of the available video effects.")
+    if new.get("animation", "none") not in ("none", "pulse"):
+        raise ValueError("Choose one of the available animations.")
+    for key, default, low, high in (("overlay_scale", 0.24, 0.08, 0.5), ("overlay_x", 0.78, 0.0, 1.0),
+                                    ("overlay_y", 0.82, 0.0, 1.0)):
+        if key in changes:
+            try:
+                value = float(changes[key])
+            except (TypeError, ValueError):
+                raise ValueError("Image position and size must be valid numbers.")
+            if not math.isfinite(value):
+                raise ValueError("Image position and size must be valid numbers.")
+            new[key] = round(max(low, min(high, value)), 3)
+        else:
+            new.setdefault(key, default)
+    for key, default, low, high in (("source_volume", 1.0, 0.0, 2.0), ("music_volume", 0.25, 0.0, 1.5)):
+        if key in changes:
+            value = float(changes[key])
+            if not math.isfinite(value):
+                raise ValueError("Audio volume must be a valid number.")
+            new[key] = round(max(low, min(high, value)), 2)
+        else:
+            new.setdefault(key, default)
+    if "music_enabled" in changes:
+        if not isinstance(changes["music_enabled"], bool):
+            raise ValueError("Music must be on or off.")
+        new["music_enabled"] = changes["music_enabled"]
+    return new
+
+
+def request_render(jid, cid, changes: dict):
+    job = _jobs[jid]
+    clip = next(c for c in job["clips"] if c["id"] == cid)
+    new = render_changes(clip, changes)
     clip.update(new, status="queued")
     save(job)
     _q.put(("clip", jid, cid))
@@ -382,9 +417,15 @@ def render_one(job, clip, words):
         if not clip.get("src"):
             clip["end"] = min(clip["end"], job["duration"])
         local = dict(clip, start=clip["start"] - off, end=clip["end"] - off, hook=roman.to_roman(clip.get("hook") or ""))
+        if clip.get("music_enabled") and clip.get("music_file"):
+            local["music_path"] = str(d / "clips" / Path(clip["music_file"]).name)
+        if clip.get("overlay_file"):
+            local["overlay_path"] = str(d / "clips" / Path(clip["overlay_file"]).name)
         near = _caption_words(job, clip, words, off) if clip.get("captions", True) else []
-        out = render.render_clip(src, d / "clips", clip["id"], local, near, job["width"], job["height"])
-        clip.update(out, status="done", version=clip.get("version", 0) + 1, error=None)
+        next_version = int(clip.get("version", 0)) + 1
+        render_name = f"{clip['id']}.v{next_version}"
+        out = render.render_clip(src, d / "clips", render_name, local, near, job["width"], job["height"])
+        clip.update(out, status="done", version=next_version, error=None, render_error=None)
         post = {k: clip[k] for k in ("title", "description", "hashtags", "hook", "start", "end", "score")}
         (d / "clips" / f"{clip['id']}.json").write_text(json.dumps(post, indent=1), encoding="utf-8")
         if clip["version"] == 1:
@@ -397,9 +438,55 @@ def render_one(job, clip, words):
                 except Exception:  # noqa: BLE001
                     traceback.print_exc()
     except Exception as e:  # noqa: BLE001
-        clip.update(status="error", error=safe.friendly(e, 400))
-        creators.log(job["creator"], f"Clip failed: {safe.friendly(e, 200)}")
+        message = safe.friendly(e, 400)
+        previous = d / "clips" / Path(str(clip.get("file") or "")).name
+        if int(clip.get("version", 0)) > 0 and previous.is_file():
+            clip.update(status="done", error=None, render_error=message)
+            creators.log(job["creator"], f"Re-render failed; previous clip kept: {message[:200]}")
+        else:
+            clip.update(status="error", error=message)
+            creators.log(job["creator"], f"Clip failed: {message[:200]}")
     save(job)
+
+
+def render_preview(job, clip, changes: dict) -> str:
+    """Render a low-resolution temporary preview without changing the saved clip or final export."""
+    new = render_changes(clip, changes)
+    d = Path(job["dir"])
+    off = clip.get("src_offset", 0.0)
+    src = Path(clip["src"]) if clip.get("src") else Path(job.get("source_path") or "")
+    if not src.is_file():
+        raise ValueError("The source media for this clip is no longer available to preview. The current export is unchanged.")
+    if not clip.get("src"):
+        new["end"] = min(new["end"], job.get("duration") or new["end"])
+    words = []
+    if new.get("captions", True):
+        fixed_for = clip.get("fixed_for") or []
+        if clip.get("fixed_words") and len(fixed_for) >= 2 and fixed_for[0] == round(new["start"], 2) and fixed_for[1] == round(new["end"], 2):
+            words = clip["fixed_words"]
+        else:
+            try:
+                all_words = json.loads((d / "words.json").read_text(encoding="utf-8"))
+                words = [w for w in all_words if new["start"] - 1 <= w.get("s", -2) <= new["end"] + 1]
+            except (OSError, ValueError):
+                words = []
+        words = [dict(w, s=w["s"] - off, e=w["e"] - off) for w in roman.words(words)]
+    local = dict(new, start=new["start"] - off, end=new["end"] - off, hook=roman.to_roman(new.get("hook") or ""))
+    if local.get("music_enabled") and local.get("music_file"):
+        local["music_path"] = str(d / "clips" / Path(local["music_file"]).name)
+    if local.get("overlay_file"):
+        local["overlay_path"] = str(d / "clips" / Path(local["overlay_file"]).name)
+    token = secrets.token_hex(8)
+    name = f"{clip['id']}.preview-{token}"
+    out_dir = d / "clips"
+    result = render.render_clip(src, out_dir, name, local, words, job.get("width") or 1920, job.get("height") or 1080,
+                                preview_size=(540, 960))
+    for ext in ("jpg", "ass"):
+        (out_dir / f"{name}.{ext}").unlink(missing_ok=True)
+    for old in out_dir.glob(f"{clip['id']}.preview-*.mp4"):
+        if old.name != result["file"]:
+            old.unlink(missing_ok=True)
+    return result["file"]
 
 
 def _caption_words(job, clip, words, off):

@@ -601,6 +601,8 @@ dialog::backdrop{background:rgba(14,12,11,.42);animation:fadein .16s ease}
 .editor{display:grid;grid-template-columns:minmax(240px,340px) minmax(300px,450px);max-height:calc(100vh - 48px)}
 .editor .stage{background:#17110E;display:grid;place-items:center;position:relative;min-height:320px}
 .editor video,.editor .stage img{width:100%;max-height:calc(100vh - 48px);aspect-ratio:9/16;object-fit:contain;display:block}
+.trimline{display:grid;grid-template-columns:36px minmax(0,1fr);gap:8px;align-items:center}.trimline span{font-size:12px;color:var(--dim)}.trimline input{width:100%;accent-color:var(--brand)}
+.editor audio{width:100%;height:38px}
 .editor .panel{padding:22px;overflow:auto;display:flex;flex-direction:column;gap:14px}
 .editor h3{font-size:13px;font-weight:600;color:var(--dim);margin-top:6px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -1673,7 +1675,8 @@ function scoreCls(s) { return s >= 80 ? "s-hi" : s >= 60 ? "s-mid" : ""; }
 function postPills(c) {
   return Object.values(c.posts || {}).filter(p => p.status !== "cancelled").map(p => {
     const cls = p.status === "posted" ? "ok" : p.status === "failed" ? "bad" : "warn";
-    const txt = `${esc(p.account_name)} · ${p.status === "scheduled" ? clock(p.due_at) : p.status}`;
+    const when = p.status === "scheduled" ? `${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}` : p.status;
+    const txt = `${esc(p.account_name)} · ${when}`;
     return p.url ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>` : `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
   }).join("");
 }
@@ -1689,6 +1692,7 @@ function clipHtml(j, c) {
     <div class="clip-body">
       <div class="hook">${esc(c.hook || "Untitled clip")}</div>
       <div class="ttl">${esc(c.title)}</div>
+      ${c.render_error ? `<div class="err" style="margin-top:6px">The latest edit failed. Your previous clip is still available. Open it to try again.</div>` : ""}
       ${postPills(c) ? `<div class="row" style="gap:4px">${postPills(c)}</div>` : ""}
       <div class="clip-foot">
         ${busyClip ? "" : `<label class="selck" title="Select this clip"><input type="checkbox" data-sel="${key}" ${sel().has(key) ? "checked" : ""} aria-label="Select this clip"></label>`}
@@ -1923,7 +1927,7 @@ function drawOverview() {
   const sum = k => o.creators.reduce((a, r) => a + r[k], 0);
   const d14 = k => (o.daily || []).reduce((a, d) => a + d[k], 0);
   const state = r => r.state === "recording" ? `<span class="pill live"><span class="dot"></span>Recording</span>` : r.state === "waiting" ? `<span class="pill warn">Waiting for live</span>` : `<span class="pill">Idle</span>`;
-  const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}</span>`;
+  const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}</span>`;
   const steps = nextSteps(o);
   put(box, `<div class="tiles">
       <div class="tile"><i>${ic("radio")}</i><b>${o.recording}</b><span>Recording now</span></div>
@@ -2141,21 +2145,47 @@ function drawClipDlg(full) {
       <div class="panel">
         <div class="job-head" style="margin:0"><div><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
           <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p></div><button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button></div>
+        ${c.render_error ? `<div class="err" role="status">Could not apply the latest edits: ${esc(c.render_error)}. The previous finished clip is still available.</div>` : ""}
         <h3>On the video</h3>
         <label class="f">Big text<input data-f="hook" value="${esc(c.hook)}"></label>
         <label class="sw"><input type="checkbox" data-f="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
         <div class="two"><label class="f">Caption style<select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
           <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
-        <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" value="${c.start}"></label>
-          <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" value="${c.end}"></label></div>
+        <p class="help">Caption examples: <b>CLIP THIS</b> · <b>Bounce</b> · <b>Hype</b> · <b>Clean</b> · Neon Glow · Bold Box · Cinematic</p>
+        <div class="two"><label class="f">Video effect<select data-f="effect">${opts({none:"Original", warm:"Warm", vivid:"Vivid", mono:"Black & white", vintage:"Vintage"}, c.effect || "none")}</select></label>
+          <label class="f">Animation<select data-f="animation">${opts({none:"None", pulse:"Slow pulse"}, c.animation || "none")}</select></label></div>
+        <h3>Image overlay</h3>
+        ${c.overlay_file ? `<p class="help">Image: <b>${esc(c.overlay_name || "Custom image")}</b></p><img class="overlay-sample" src="${m}${esc(c.overlay_file)}" alt="Current custom image overlay" style="width:84px;height:84px;object-fit:contain;background:var(--muted);border-radius:8px;padding:4px">` : `<p class="help">Add your logo, sticker, or transparent PNG image.</p>`}
+        <label class="f">Choose image<input id="overlay-file" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
+        <button class="btn" data-act="overlayupload">${ic("up")}${c.overlay_file ? "Replace image" : "Add image"}</button>
+        <label class="f">Image size <input data-f="overlay_scale" type="range" min="0.08" max="0.5" step="0.01" value="${c.overlay_scale ?? 0.24}"></label>
+        <div class="two"><label class="f">Horizontal position<input data-f="overlay_x" type="range" min="0" max="1" step="0.01" value="${c.overlay_x ?? 0.78}"></label>
+          <label class="f">Vertical position<input data-f="overlay_y" type="range" min="0" max="1" step="0.01" value="${c.overlay_y ?? 0.82}"></label></div>
+        <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" min="${c.start}" max="${c.end - 3}" value="${c.start}"></label>
+          <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" min="${c.start + 3}" max="${c.end}" value="${c.end}"></label></div>
+        <div class="trimline"><span>In</span><input id="trim-in" type="range" min="${c.start}" max="${c.end - 3}" step="0.5" value="${c.start}" aria-label="Trim start time"></div>
+        <div class="trimline"><span>Out</span><input id="trim-out" type="range" min="${c.start + 3}" max="${c.end}" step="0.5" value="${c.end}" aria-label="Trim end time"></div>
+        <h3>Sound</h3>
+        ${c.music_file ? `<p class="help">Track: <b>${esc(c.music_name || "Imported music")}</b>${c.music_attribution ? `<br>Credit: ${esc(c.music_attribution)}` : ""}${c.music_license_url && /^https?:\/\//i.test(c.music_license_url) ? `<br><a class="lnk" href="${esc(c.music_license_url)}" target="_blank" rel="noopener">Source or license</a>` : ""}</p>
+          <audio controls preload="none" src="${m}${esc(c.music_file)}" aria-label="Preview ${esc(c.music_name || "music track")}"></audio>` : `<p class="help">Import audio you own or have permission to reuse. Streaming service links are not imported.</p>`}
+        <label class="f">Music file<input id="music-file" type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg,audio/flac,.mp3,.wav,.m4a,.aac,.ogg,.flac"></label>
+        <label class="f">Credit / attribution<input id="music-attribution" maxlength="500" placeholder="Creator and license credit" value="${esc(c.music_attribution || "")}"></label>
+        <label class="f">Source or license link <small>Optional</small><input id="music-license" type="url" maxlength="500" placeholder="https://…" value="${esc(c.music_license_url || "")}"></label>
+        <label class="sw"><input id="music-rights" type="checkbox">I have permission to reuse this track in my video</label>
+        <button class="btn" data-act="musicupload">${ic("up")}Import music</button>
+        <label class="sw"><input data-f="music_enabled" type="checkbox" ${c.music_enabled && c.music_file ? "checked" : ""} ${c.music_file ? "" : "disabled"}>Mix music into this clip</label>
+        <div class="two"><label class="f">Original audio<input data-f="source_volume" type="range" min="0" max="2" step="0.05" value="${c.source_volume ?? 1}"></label>
+          <label class="f">Music volume<input data-f="music_volume" type="range" min="0" max="1.5" step="0.05" value="${c.music_volume ?? 0.25}" ${c.music_file ? "" : "disabled"}></label></div>
         <h3>Post text</h3>
         <label class="f">Title<input data-f="title" value="${esc(c.title)}"></label>
         <label class="f">Description<textarea data-f="description" rows="2">${esc(c.description)}</textarea></label>
-        <button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button>
+        <div class="row"><button class="btn" data-act="preview">${ic("play")}Preview edits</button><button class="btn primary" data-act="remake">${ic("scissors")}Render final clip</button></div>
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
         ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
-          <div class="row"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>`
+          <div class="row"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>
+          <h3>Schedule</h3><label class="f">Date and time<input id="post-at" type="datetime-local"></label>
+          <p class="help" id="post-zone"></p><button class="btn" data-act="postschedule">${ic("clock")}Schedule post</button>`
           : `<p class="help">No accounts connected yet. Connect one in Settings.</p>`}
         <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line)">
           ${c.status === "done" ? `<a class="btn" href="${m}${esc(c.file)}?download=1">${ic("down")}Download</a>` : ""}
@@ -2164,9 +2194,53 @@ function drawClipDlg(full) {
   } else if (D.sig !== sig) $("#stage").innerHTML = stage;
   D.sig = sig;
   put($("#dposts"), postPills(c));
+  bindTrimPreview();
+  initPostSchedule();
 }
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+function bindTrimPreview() {
+  const video = $("#stage video"), start = $('#clipdlg [data-f="start"]'), end = $('#clipdlg [data-f="end"]');
+  if (!video || !start || !end || video.dataset.trimReady) return;
+  const clip = jobOf(D.jid)?.clips.find(x => x.id === D.cid);
+  const base = clip?.start ?? Number(start.value);
+  video.dataset.trimReady = "1"; video.dataset.baseStart = String(base);
+  video.dataset.trimStart = String(Number(start.value) - base); video.dataset.trimEnd = String(Number(end.value) - base);
+  video.addEventListener("timeupdate", () => {
+    const lo = Number(video.dataset.trimStart), hi = Number(video.dataset.trimEnd);
+    if (Number.isFinite(hi) && hi > lo && video.currentTime >= hi) video.currentTime = lo;
+  });
+}
+function syncTrimPreview(input) {
+  const start = $('#clipdlg [data-f="start"]'), end = $('#clipdlg [data-f="end"]');
+  const inRange = $("#trim-in"), outRange = $("#trim-out"), video = $("#stage video");
+  if (!start || !end || !inRange || !outRange) return;
+  if (input === inRange) start.value = inRange.value;
+  if (input === outRange) end.value = outRange.value;
+  if (input === start) inRange.value = start.value;
+  if (input === end) outRange.value = end.value;
+  let a = Number(start.value), b = Number(end.value);
+  if (b - a < 3) {
+    if (input === inRange || input === start) { b = Math.min(Number(end.max), a + 3); end.value = String(b); outRange.value = String(b); }
+    else { a = Math.max(Number(start.min), b - 3); start.value = String(a); inRange.value = String(a); }
+  }
+  if (video) {
+    const base = Number(video.dataset.baseStart || 0);
+    video.dataset.trimStart = String(Math.max(0, a - base));
+    video.dataset.trimEnd = String(Math.max(0, b - base));
+    if (video.currentTime < Number(video.dataset.trimStart) || video.currentTime >= Number(video.dataset.trimEnd))
+      video.currentTime = Number(video.dataset.trimStart);
+  }
+}
+$("#clipdlg").addEventListener("input", e => {
+  if (["trim-in", "trim-out"].includes(e.target.id) || ["start", "end"].includes(e.target.dataset.f)) syncTrimPreview(e.target);
+});
+function initPostSchedule() {
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", out = $("#post-zone");
+  if (out) out.textContent = `Times use your device timezone: ${zone}. Choose a future time.`;
+  const input = $("#post-at");
+  if (input && !input.value) { const d = new Date(Date.now() + 3600000); d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0); input.value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
+}
 
 /* ============================================================ render + polling */
 function render() {
@@ -2300,6 +2374,25 @@ document.addEventListener("click", async e => {
     if (a === "addmore") { const u = $("#url"); return u && !u.value ? (u.focus(), toast("Paste another link, or drop a file anywhere on the box.")) : $("#file").click(); }
     if (a === "closedlg") return $("#clipdlg").close();
     if (a === "openclip") return openClip(d.j, d.c);
+    if (a === "musicupload") {
+      const file = $("#music-file")?.files?.[0];
+      if (!file) return toast("Choose an audio file first.", "bad");
+      if (!$("#music-rights")?.checked) return toast("Confirm you have permission to reuse this track.", "bad");
+      const fd = new FormData(); fd.append("file", file); fd.append("attribution", $("#music-attribution")?.value || "");
+      fd.append("license_url", $("#music-license")?.value || ""); fd.append("rights_confirmed", "yes"); b.disabled = true;
+      try { await api(`/api/jobs/${D.jid}/clips/${D.cid}/music`, {method:"POST", body:fd}); await tick(); D.sig = ""; drawClipDlg(true); toast("Music imported. Save and re-make the clip to mix it.", "ok"); }
+      finally { b.disabled = false; }
+      return;
+    }
+    if (a === "overlayupload") {
+      const file = $("#overlay-file")?.files?.[0];
+      if (!file) return toast("Choose a PNG, JPEG, or WebP image first.", "bad");
+      if (file.size > 8 * 1024 * 1024) return toast("Images are limited to 8 MB.", "bad");
+      const fd = new FormData(); fd.append("file", file); b.disabled = true;
+      try { await api(`/api/jobs/${D.jid}/clips/${D.cid}/overlay`, {method:"POST", body:fd}); await tick(); D.sig = ""; drawClipDlg(true); toast("Image added. Preview it or render the clip to apply it.", "ok"); }
+      finally { b.disabled = false; }
+      return;
+    }
     if (a === "newcreator") {
       const dlg = $("#formdlg");
       dlg.innerHTML = `<form method="dialog" class="dlg"><h2>New creator</h2><p class="help">Each creator gets their own workspace, folder, settings and accounts.</p>
@@ -2460,16 +2553,30 @@ document.addEventListener("click", async e => {
     }
     if (a === "remake") {
       const body = {}; $$("#clipdlg [data-f]").forEach(i => {
-        body[i.dataset.f] = i.type === "checkbox" ? i.checked : i.type === "number" ? Number(i.value) : i.value;
+        body[i.dataset.f] = i.type === "checkbox" ? i.checked : ["number", "range"].includes(i.type) ? Number(i.value) : i.value;
       });
       await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body); toast("Re-making the clip…", "ok"); return tick();
     }
-    if (a === "postnow" || a === "postqueue") {
+    if (a === "preview") {
+      const body = {}; $$("#clipdlg [data-f]").forEach(i => {
+        body[i.dataset.f] = i.type === "checkbox" ? i.checked : ["number", "range"].includes(i.type) ? Number(i.value) : i.value;
+      });
+      b.disabled = true; b.textContent = "Making preview…";
+      try {
+        const r = await send(`/api/jobs/${D.jid}/clips/${D.cid}/preview`, body);
+        $("#stage").innerHTML = `<video src="${esc(r.file)}?v=${Date.now()}" controls autoplay playsinline aria-label="Preview of your edits"></video>`;
+        bindTrimPreview(); toast("Preview ready. Your finished clip has not been changed.", "ok");
+      } finally { b.disabled = false; b.innerHTML = `${ic("play")}Preview edits`; }
+      return;
+    }
+    if (a === "postnow" || a === "postqueue" || a === "postschedule") {
       const accs = $$("#clipdlg [data-pacc]:checked").map(i => i.value);
       if (!accs.length) return toast("Tick at least one account first.", "bad");
       if (a === "postnow" && !await ask("Post now?", `This clip goes to ${accs.length} account${accs.length > 1 ? "s" : ""} straight away.`, "Post now")) return;
-      await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs, now:a === "postnow"});
-      toast(a === "postnow" ? "Posting now" : "Added to the queue", "ok"); return tick();
+      if (a === "postschedule" && !$("#post-at")?.value) return toast("Choose a date and time first.", "bad");
+      await send("/api/posts", {job:D.jid, clip:D.cid, accounts:accs, now:a === "postnow",
+        ...(a === "postschedule" ? {scheduled_at: $("#post-at").value, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"} : {})});
+      toast(a === "postnow" ? "Posting now" : a === "postschedule" ? "Post scheduled" : "Added to the queue", "ok"); return tick();
     }
   } catch (err) { b.disabled = false; toast(err.message, "bad"); }
 });

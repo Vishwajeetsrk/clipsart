@@ -17,8 +17,13 @@ def video(creator=None, n=3, status="done"):
     for i in range(n):
         cid = f"clip{i+1:02d}"
         for ext in ("mp4", "jpg", "ass", "json", "src.ts"): (Path(j["dir"]) / "clips" / f"{cid}.{ext}").write_bytes(b"x" * 1000)
-        j["clips"].append({"id": cid, "status": "done", "file": f"{cid}.mp4", "cover": f"{cid}.jpg", "title": "Same title", "start": 0, "end": 10,
-                           "src": str(Path(j["dir"]) / "clips" / f"{cid}.src.ts")})
+        music = f"{cid}.music-test.wav"
+        overlay = f"{cid}.overlay-test.png"
+        (Path(j["dir"]) / "clips" / music).write_bytes(b"user audio")
+        (Path(j["dir"]) / "clips" / overlay).write_bytes(b"user overlay")
+        (Path(j["dir"]) / "clips" / f"{cid}.preview-test.mp4").write_bytes(b"temporary preview")
+        j["clips"].append({"id": cid, "status": "done", "file": f"{cid}.mp4", "cover": f"{cid}.jpg", "music_file": music, "overlay_file": overlay,
+                           "title": "Same title", "start": 0, "end": 10, "src": str(Path(j["dir"]) / "clips" / f"{cid}.src.ts")})
     j["status"] = status; jobs.save(j); return j
 with ctx.as_user(a.id):
     c = creators.create({"name": "Streamer"})
@@ -26,6 +31,9 @@ with ctx.as_user(a.id):
     check("one clip is deleted with its files", account.delete_clip(j1["id"], "clip01") and not (Path(j1["dir"]) / "clips" / "clip01.mp4").exists() and len(jobs.get(j1["id"])["clips"]) == 2)
     left = [e for e in ("ass", "json", "src.ts") if (Path(j1["dir"]) / "clips" / f"clip01.{e}").exists()]
     check("...and its captions, notes and cut-out piece of video too", not left, str(left))
+    check("...and the music file attached to that deleted clip", not (Path(j1["dir"]) / "clips" / "clip01.music-test.wav").exists())
+    check("...and the custom image attached to that deleted clip", not (Path(j1["dir"]) / "clips" / "clip01.overlay-test.png").exists())
+    check("...and temporary previews of that deleted clip", not (Path(j1["dir"]) / "clips" / "clip01.preview-test.mp4").exists())
     check("...while the other clips keep theirs", all((Path(j1["dir"]) / "clips" / f"clip02.{e}").exists() for e in ("ass", "json", "src.ts")))
     j_own = video(n=1); jj = jobs.get(j_own["id"]); whole = Path(jj["dir"]) / "whole.mp4"; whole.write_bytes(b"x" * 1000)
     jj["clips"][0]["src"] = str(whole); jobs.save(jj); account.delete_clip(jj["id"], "clip01")

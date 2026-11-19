@@ -7,6 +7,7 @@ import hmac
 import json
 import os
 import re
+import secrets
 import shutil
 import threading
 import time
@@ -101,11 +102,14 @@ class Gate:
             # Only the upload may be big. Everything else is a small form, and is cut off at 256 KB whatever its
             # headers claim, so nobody can fill the server's memory by posting junk (signed in or not).
             piece = method == "PUT" and path.startswith("/api/upload/")
-            cap = ((min(config.MAX_UPLOAD_MB, config.UPLOAD_PART_MB) if piece else config.MAX_UPLOAD_MB) + 8) * 1024 * 1024 \
-                if path == "/api/upload" or piece else 256 * 1024
+            music = method == "POST" and path.endswith("/music") and path.startswith("/api/jobs/")
+            overlay = method == "POST" and path.endswith("/overlay") and path.startswith("/api/jobs/")
+            cap = (((min(config.MAX_UPLOAD_MB, config.UPLOAD_PART_MB) if piece else config.MAX_UPLOAD_MB) + 8) * 1024 * 1024
+                   if path == "/api/upload" or piece else 9 * 1024 * 1024 if overlay else 33 * 1024 * 1024 if music else 256 * 1024)
             try:
                 if int(req.headers.get("content-length") or 0) > cap:
-                    return await deny(413, f"That file is too big. The limit is {config.MAX_UPLOAD_MB} MB." if path == "/api/upload" else "That request is too large.")
+                    message = "Music uploads are limited to 25 MB." if music else "Images are limited to 8 MB." if overlay else f"That file is too big. The limit is {config.MAX_UPLOAD_MB} MB." if path == "/api/upload" else "That request is too large."
+                    return await deny(413, message)
             except ValueError:
                 return await deny(400, "Bad request.")
             seen, inner_receive = 0, receive
@@ -943,6 +947,130 @@ def rerender(jid: str, cid: str, body: dict = Body(...)):
     return jobs.public(job)
 
 
+@app.post("/api/jobs/{jid}/clips/{cid}/preview")
+async def clip_preview(jid: str, cid: str, body: dict = Body(...)):
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "No such clip")
+    if job.get("status") in ("queued", "running") or clip.get("status") in ("queued", "rendering"):
+        raise HTTPException(409, "Wait for this clip to finish before previewing edits.")
+    _throttle("preview:" + ctx.uid(), 6, 60, "Preview renders are busy. Wait a minute and try again.")
+    try:
+        file = await run_in_threadpool(jobs.render_preview, job, clip, body)
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"Could not make the preview: {safe.friendly(e, 250)}") from e
+    return {"file": f"/media/{jid}/{file}", "width": 540, "height": 960}
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/music")
+async def clip_music_upload(jid: str, cid: str, file: UploadFile = File(...), attribution: str = Form(""),
+                             license_url: str = Form(""), rights_confirmed: str = Form("")):
+    """Store a user-provided audio track for this clip. We do not fetch tracks from streaming services."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "No such clip")
+    if clip.get("status") in ("queued", "rendering") or job.get("status") in ("queued", "running"):
+        raise HTTPException(409, "Wait for this clip to finish before adding music.")
+    if rights_confirmed != "yes":
+        raise HTTPException(400, "Confirm that you have permission to reuse this track in your video.")
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"):
+        raise HTTPException(400, "Choose an MP3, WAV, M4A, AAC, OGG, or FLAC audio file.")
+    attribution = str(attribution).strip()[:500]
+    license_url = str(license_url).strip()[:500]
+    if license_url:
+        parsed = urlparse(license_url)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+            raise HTTPException(400, "The source or license must be an HTTP or HTTPS link.")
+    clips_dir = Path(job["dir"]) / "clips"
+    clips_dir.mkdir(parents=True, exist_ok=True)
+    token = secrets.token_hex(8)
+    temp = clips_dir / f".{cid}.{token}.part"
+    final = clips_dir / f"{cid}.music-{token}{ext}"
+    size = 0
+    try:
+        with temp.open("wb") as out:
+            while chunk := await file.read(1024 * 1024):
+                size += len(chunk)
+                if size > 25 * 1024 * 1024:
+                    raise HTTPException(413, "Music files are limited to 25 MB.")
+                out.write(chunk)
+        if not size:
+            raise HTTPException(400, "Choose an audio file first.")
+        info = json.loads(media.run(["ffprobe", "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(temp)], timeout=30))
+        audio = next((s for s in info.get("streams", []) if s.get("codec_type") == "audio"), None)
+        duration = float((audio or {}).get("duration") or info.get("format", {}).get("duration") or 0)
+        if not audio or not 0 < duration <= 3600:
+            raise HTTPException(400, "Choose an audio file up to 60 minutes long.")
+        os.replace(temp, final)
+        clip.update(music_file=final.name, music_name=Path(file.filename or "Music track").name[:120],
+                    music_attribution=attribution, music_license_url=license_url, music_enabled=True,
+                    music_volume=clip.get("music_volume", 0.25), source_volume=clip.get("source_volume", 1.0))
+        jobs.save(job)
+        return {"ok": True, "name": clip["music_name"], "duration": round(duration, 1), "attribution": attribution,
+                "license_url": license_url}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"Could not read that audio file: {safe.friendly(e, 200)}") from e
+    finally:
+        temp.unlink(missing_ok=True)
+        await file.close()
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/overlay")
+async def clip_overlay_upload(jid: str, cid: str, file: UploadFile = File(...)):
+    """Store a user-provided image overlay for one owned clip."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "No such clip")
+    if clip.get("status") in ("queued", "rendering") or job.get("status") in ("queued", "running"):
+        raise HTTPException(409, "Wait for this clip to finish before adding an image.")
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in (".png", ".jpg", ".jpeg", ".webp"):
+        raise HTTPException(400, "Choose a PNG, JPEG, or WebP image.")
+    d = Path(job["dir"]) / "clips"
+    d.mkdir(parents=True, exist_ok=True)
+    token = secrets.token_hex(8)
+    temp, final = d / f".{cid}.{token}.part", d / f"{cid}.overlay-{token}{ext}"
+    try:
+        size = 0
+        with temp.open("wb") as out:
+            while chunk := await file.read(1024 * 1024):
+                size += len(chunk)
+                if size > 8 * 1024 * 1024:
+                    raise HTTPException(413, "Images are limited to 8 MB.")
+                out.write(chunk)
+        if not size:
+            raise HTTPException(400, "Choose an image first.")
+        from PIL import Image
+        with Image.open(temp) as im:
+            if im.format not in ("PNG", "JPEG", "WEBP") or im.width < 1 or im.height < 1 or im.width * im.height > 24_000_000:
+                raise HTTPException(400, "Choose a valid image no larger than 24 megapixels.")
+            im.verify()
+        os.replace(temp, final)
+        previous = Path(str(clip.get("overlay_file") or "")).name
+        clip.update(overlay_file=final.name, overlay_name=Path(file.filename or "Overlay image").name[:120],
+                    overlay_scale=clip.get("overlay_scale", 0.24), overlay_x=clip.get("overlay_x", 0.78),
+                    overlay_y=clip.get("overlay_y", 0.82))
+        jobs.save(job)
+        if previous.startswith(f"{cid}.overlay-"):
+            (d / previous).unlink(missing_ok=True)
+        return {"ok": True, "name": clip["overlay_name"]}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"Could not read that image: {safe.friendly(e, 200)}") from e
+    finally:
+        temp.unlink(missing_ok=True)
+        await file.close()
+
+
 @app.delete("/api/jobs/{jid}")
 def delete_job(jid: str):
     job = _job_or_404(jid)
@@ -1024,7 +1152,7 @@ def delete_my_account(request: Request, body: dict = Body(...)):
 
 @app.get("/media/{jid}/{name}")
 def media_file(jid: str, name: str, download: int = 0):
-    if not re.fullmatch(r"[\w\-]+\.(mp4|jpg)", name):
+    if not re.fullmatch(r"[\w\-.]+\.(mp4|jpg|mp3|wav|m4a|aac|ogg|flac)", name):
         raise HTTPException(404)
     f = Path(_job_or_404(jid)["dir"]) / "clips" / name
     if not f.is_file():
@@ -1455,7 +1583,11 @@ def add_posts(body: dict = Body(...)):
     clip = next((c for c in job["clips"] if c["id"] == body.get("clip")), None) if job else None
     if not clip or clip.get("status") != "done":
         raise HTTPException(404, "That clip is not ready")
-    made = posting.enqueue(job, clip, [str(a) for a in body.get("accounts", [])][:20], now=bool(body.get("now")))
+    try:
+        made = posting.enqueue(job, clip, [str(a) for a in body.get("accounts", [])][:20], now=bool(body.get("now")),
+                               scheduled_at=body.get("scheduled_at"), timezone=body.get("timezone"))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     if not made:
         raise HTTPException(400, "Nothing was queued. Pick at least one account this clip has not already gone to.")
     return {"queued": len(made)}

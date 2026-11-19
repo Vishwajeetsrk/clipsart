@@ -2,7 +2,9 @@
 import secrets
 import threading
 import time
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import json
 
@@ -43,6 +45,10 @@ def _day(t):
     return time.strftime("%Y-%m-%d", time.localtime(t))
 
 
+def _day_in(t, timezone):
+    return datetime.fromtimestamp(t, ZoneInfo(timezone)).date().isoformat()
+
+
 def _mirror(p):
     """Copy the post's state onto its clip so the clip card can show it."""
     job = jobs.get(p["job"])
@@ -64,22 +70,66 @@ def _next_slot(account_id, gap_min, cap):
     return t
 
 
-def enqueue(job, clip, account_ids, now=False) -> list:
+def _local_schedule(value, timezone):
+    """Resolve a browser-local datetime into an epoch; reject invalid, missing, and ambiguous wall times."""
+    if not isinstance(value, str) or len(value) > 40 or not isinstance(timezone, str) or len(timezone) > 80:
+        raise ValueError("Choose a valid date, time, and timezone.")
+    try:
+        zone = ZoneInfo(timezone)
+        local = datetime.fromisoformat(value)
+    except (ValueError, TypeError, ZoneInfoNotFoundError):
+        raise ValueError("Choose a valid date, time, and timezone.") from None
+    if local.tzinfo is not None:
+        raise ValueError("The scheduled time must be local time without an offset.")
+    a, b = local.replace(tzinfo=zone, fold=0), local.replace(tzinfo=zone, fold=1)
+    if a.astimezone(ZoneInfo("UTC")).astimezone(zone).replace(tzinfo=None) != local:
+        raise ValueError("That local time does not exist because of a daylight-saving clock change. Choose another time.")
+    if a.utcoffset() != b.utcoffset():
+        raise ValueError("That local time occurs twice because of a daylight-saving clock change. Choose another time.")
+    return a.timestamp()
+
+
+def _check_slot(account_id, due, gap_min, cap, timezone):
+    mine = [p for p in _mine() if p["account"] == account_id and p["status"] in OPEN + ("posted",)]
+    if due <= time.time():
+        raise ValueError("Choose a time in the future.")
+    for p in mine:
+        other = p.get("posted_at") or p.get("due_at")
+        if other is not None and abs(due - other) < gap_min * 60:
+            raise ValueError(f"This time is too close to another post for {p.get('account_name', 'this account')}. Choose a time at least {gap_min} minutes away.")
+    if sum(1 for p in mine if _day_in(p.get("posted_at") or p["due_at"], timezone) == _day_in(due, timezone)) >= cap:
+        raise ValueError(f"This account already has {cap} post(s) scheduled for that day. Choose another day.")
+
+
+def enqueue(job, clip, account_ids, now=False, scheduled_at=None, timezone=None) -> list:
     c = creators.get(job["creator"]) or creators.DEFAULTS
     made = []
+    explicit_due = _local_schedule(scheduled_at, timezone) if scheduled_at is not None else None
+    if explicit_due is not None and now:
+        raise ValueError("Choose either Post now or a scheduled time.")
     with _lock:
-        for aid in account_ids:
+        destinations = []
+        for aid in dict.fromkeys(account_ids):
             acc = accounts.get(aid)
             if not acc:
                 continue
             if any(p["job"] == job["id"] and p["clip"] == clip["id"] and p["account"] == aid
                    and p["status"] in OPEN + ("posted",) for p in _mine()):
                 continue  # never post the same clip to the same account twice
-            due = time.time() if now else _next_slot(aid, c["post_gap_min"], c["daily_cap"])
+            due = explicit_due if explicit_due is not None else time.time() if now else _next_slot(aid, c["post_gap_min"], c["daily_cap"])
+            if explicit_due is not None:
+                try:
+                    _check_slot(aid, due, c["post_gap_min"], c["daily_cap"], timezone)
+                except ZoneInfoNotFoundError:
+                    raise ValueError("That timezone is not recognized. Choose your device timezone again.") from None
+            destinations.append((aid, acc, due))
+        for aid, acc, due in destinations:
             p = {"id": secrets.token_hex(8), "user": ctx.uid(), "job": job["id"], "clip": clip["id"], "creator": job["creator"],
                  "account": aid, "account_name": acc["name"], "platform": acc["platform"], "status": "scheduled",
                  "due_at": due, "created": time.time(), "title": clip.get("title") or clip.get("hook") or "Clip",
                  "score": clip.get("score", 0), "tries": 0, "url": "", "remote_id": "", "error": None, "views": None}
+            if explicit_due is not None:
+                p["scheduled_timezone"] = timezone
             _posts.append(p)
             made.append(p)
         _save()
@@ -102,7 +152,8 @@ def on_clip_ready(job, clip):
 
 def _caption(clip, creator):
     tags = " ".join("#" + h for h in clip.get("hashtags", []))
-    return "\n\n".join(x for x in (clip.get("description", ""), tags, creator.get("post_footer", "")) if x)
+    attribution = (clip.get("music_attribution") or "").strip()
+    return "\n\n".join(x for x in (clip.get("description", ""), tags, creator.get("post_footer", ""), attribution) if x)
 
 
 def _post(p):

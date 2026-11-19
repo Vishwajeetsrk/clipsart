@@ -18,6 +18,12 @@ STYLES = {
              "strong": "00D7FF", "outline": 7, "pop": 114, "upper": True, "per": 2},
     "clean": {"label": "Clean", "font": "Poppins ExtraBold", "size": 100, "base": "FFFFFF", "active": "6BD7FF",
               "strong": "FFFFFF", "outline": 5, "pop": 106, "upper": False, "per": 4},
+    "neon": {"label": "Neon Glow", "font": "Archivo Black", "size": 128, "base": "FFFFFF", "active": "00F0FF",
+             "strong": "FF4DDA", "outline": 3, "pop": 116, "upper": True, "per": 2},
+    "boxed": {"label": "Bold Box", "font": "Archivo Black", "size": 112, "base": "FFFFFF", "active": "111111",
+              "strong": "FFFFFF", "outline": 3, "pop": 108, "upper": True, "per": 3},
+    "cinema": {"label": "Cinematic", "font": "Poppins ExtraBold", "size": 86, "base": "FFFFFF", "active": "FFC86B",
+               "strong": "FFC86B", "outline": 3, "pop": 100, "upper": False, "per": 5},
 }
 HOOK = {"font": "Poppins ExtraBold", "size": 96, "ink": "14100E", "box": "FFFFFF", "pad_x": 36, "pad_y": 22, "radius": 26,
         "max_w": 900}
@@ -160,6 +166,8 @@ def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y) -> 
     st = STYLES.get(style_name, STYLES["bounce"])
     words = [dict(w, s=w["s"] - CAPTION_LEAD, e=w["e"] - CAPTION_LEAD) for w in words]
     strong = {_key(h) for h in highlight if _key(h)}
+    back_style = 3 if style_name == "boxed" else 1
+    shadow = 2 if style_name == "cinema" else 0
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -169,7 +177,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Cap,{st['font']},{st['size']},&H00{st['base']},&H00{st['base']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,{st['outline']},0,5,0,0,0,1
+Style: Cap,{st['font']},{st['size']},&H00{st['base']},&H00{st['base']},&H88000000,&HCC111111,0,0,0,0,100,100,0,0,{back_style},{st['outline']},{shadow},5,0,0,0,1
 Style: Hook,{HOOK['font']},{HOOK['size']},&H00{HOOK['ink']},&H00{HOOK['ink']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
 
 [Events]
@@ -220,7 +228,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if a - g_start >= 0.02:                                                   # waiting to be said
                 ev.append(f"Dialogue: 1,{_ts(g_start)},{_ts(a)},Cap,,0,0,0,,{{{pos}\\c&H{base}&}}{t}")
             if b - a >= 0.02:                                                         # being said: colour and a quick pop, in front
-                ev.append(f"Dialogue: 2,{_ts(a)},{_ts(b)},Cap,,0,0,0,,{{{pos}\\c&H{st['active']}&\\fscx94\\fscy94"
+                active = st["active"]
+                ev.append(f"Dialogue: 2,{_ts(a)},{_ts(b)},Cap,,0,0,0,,{{{pos}\\c&H{active}&\\fscx94\\fscy94"
                           f"\\t(0,90,\\fscx{p}\\fscy{p})\\t(90,200,\\fscx{p - 5}\\fscy{p - 5})}}{t}")
             if g_end - b >= 0.02:                                                     # said
                 ev.append(f"Dialogue: 1,{_ts(b)},{_ts(g_end)},Cap,,0,0,0,,{{{pos}\\c&H{base}&\\fscx{p - 5}\\fscy{p - 5}"
@@ -264,7 +273,8 @@ _qsv_ok = None
 RENDER_SECONDS = 600      # one clip's video encode; far beyond normal, so a frozen encoder is stopped, not waited on
 
 
-def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int) -> dict:
+def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int,
+                preview_size=None) -> dict:
     """Writes <name>.mp4, <name>.jpg and <name>.ass into out_dir. Returns file names."""
     out_dir.mkdir(parents=True, exist_ok=True)
     start, end = clip["start"], clip["end"]
@@ -281,23 +291,78 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     # break the filter syntax).
     work = Path(tempfile.mkdtemp(prefix="pk"))
     try:
-        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face)
+        overlay = clip.get("overlay_path")
+        if overlay and not Path(overlay).is_file():
+            overlay = None
+        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face,
+                          music_path=clip.get("music_path"), source_volume=clip.get("source_volume", 1.0),
+                          music_volume=clip.get("music_volume", 0.25), preview_size=preview_size,
+                          overlay_path=overlay, overlay_scale=clip.get("overlay_scale", 0.24),
+                          overlay_x=clip.get("overlay_x", 0.78), overlay_y=clip.get("overlay_y", 0.82),
+                          effect=clip.get("effect", "none"), animation=clip.get("animation", "none"))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None) -> dict:
+def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None,
+               music_path=None, source_volume=1.0, music_volume=0.25, preview_size=None, overlay_path=None,
+               overlay_scale=0.24, overlay_x=0.78, overlay_y=0.82, effect="none", animation="none") -> dict:
     global _qsv_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
     for f in config.FONTS_DIR.glob("*.ttf"):
         shutil.copyfile(f, work / "f" / f.name)
-    fc = _filter(layout, fg_h, face) + f"[v0]ass={name}.ass:fontsdir=f[v]"
-    base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{end - start:.2f}", "-i", str(src),
-            "-filter_complex", fc, "-map", "[v]", "-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
-            "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-pix_fmt"]
+    duration = end - start
+    fc = _filter(layout, fg_h, face) + f"[v0]ass={name}.ass:fontsdir=f[vbase]"
+    vmap = "[vbase]"
+    if effect == "warm":
+        fc += ";[vbase]eq=saturation=1.2:contrast=1.04:gamma=1.02[vfx]"
+        vmap = "[vfx]"
+    elif effect == "mono":
+        fc += ";[vbase]hue=s=0,eq=contrast=1.08[vfx]"
+        vmap = "[vfx]"
+    elif effect == "vintage":
+        fc += ";[vbase]hue=s=0.82,eq=contrast=1.1:brightness=0.025,colorbalance=rs=0.08:gs=0.02:bs=-0.04[vfx]"
+        vmap = "[vfx]"
+    elif effect == "vivid":
+        fc += ";[vbase]eq=saturation=1.45:contrast=1.08[vfx]"
+        vmap = "[vfx]"
+    if overlay_path and Path(overlay_path).is_file():
+        overlay_path = Path(overlay_path)
+        shutil.copyfile(overlay_path, work / ("overlay" + overlay_path.suffix.lower()))
+        ow, oh = max(2, int(W * max(.08, min(.5, float(overlay_scale))))), -1
+        ox = f"(W-w)*{max(0.0, min(1.0, float(overlay_x))):.3f}"
+        oy = f"(H-h)*{max(0.0, min(1.0, float(overlay_y))):.3f}"
+        fc += f";[1:v]scale={ow}:{oh}:force_original_aspect_ratio=decrease[ov];{vmap}null[basev];[basev][ov]overlay={ox}:{oy}:shortest=1:eof_action=repeat[vout]"
+        vmap = "[vout]"
+    if animation == "pulse":
+        fc += f";{vmap}zoompan=z='min(1.04\\,1.015+0.015*sin(2*PI*on/36))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps={config.OUT_FPS}[vanim]"
+        vmap = "[vanim]"
+    if preview_size:
+        pw, ph = (int(v) for v in preview_size)
+        fc += f";{vmap}scale={pw}:{ph}[previewv]"
+        vmap = "[previewv]"
+    base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{duration:.2f}", "-i", str(src)]
+    if overlay_path and Path(overlay_path).is_file():
+        base += ["-loop", "1", "-i", str(work / ("overlay" + Path(overlay_path).suffix.lower()))]
+    music_path = Path(music_path) if music_path else None
+    if music_path and music_path.is_file():
+        source_volume = max(0.0, min(2.0, float(source_volume)))
+        music_volume = max(0.0, min(1.5, float(music_volume)))
+        fc += (f";[0:a:0]volume={source_volume}[sourcea];"
+               f"[1:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
+               f"afade=t=in:st=0:d=0.35,afade=t=out:st={max(0.0, duration - 0.45):.3f}:d=0.45[music];"
+               "[sourcea][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,"
+               "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
+        base += ["-stream_loop", "-1", "-i", str(music_path), "-filter_complex", fc, "-map", vmap, "-map", "[a]"]
+    else:
+        fc += ";[0:a:0]volume=" + str(max(0.0, min(2.0, float(source_volume)))) + ",loudnorm=I=-14:TP=-1.5:LRA=11[a]"
+        base += ["-filter_complex", fc, "-map", vmap, "-map", "[a]"]
+    base += ["-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-pix_fmt"]
     encoders = []
-    if _qsv_ok is not False:
+    if preview_size:
+        encoders.append(("preview", ["yuv420p", "-c:v", "libx264", "-crf", "30", "-preset", "ultrafast"]))
+    elif _qsv_ok is not False:
         encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "23", "-preset", "fast"]))
     encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"]))
     err = None
