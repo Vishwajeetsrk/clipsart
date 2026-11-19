@@ -252,7 +252,11 @@ class Session:
                 fails += 1
                 if self.samples == 0 or fails >= 3:
                     if self.samples == 0:
-                        self.job["error"] = f"Could not start recording: {e}"
+                        err_str = str(e)
+                        if "not currently live" in err_str.lower():
+                            self.job["error"] = "Channel is not currently live. Waiting for stream to start."
+                        else:
+                            self.job["error"] = f"Could not start recording: {e}"
                     break
                 self.stop_flag.wait(10)
                 continue
