@@ -192,6 +192,7 @@ def _post(p):
             if p.get("creator"):
                 creators.log(p["creator"], f"Ready for 1-click web dispatch on {acc.get('name', 'account')}: {title}")
             _save()
+            _mirror(p)
             return
         if acc["platform"] == "youtube":
             rid, url = accounts.youtube_upload(acc, path, title, cap + "\n\n#Shorts", clip.get("hashtags", []), creator["privacy"])
@@ -273,9 +274,10 @@ def _stats():
 def cancel(pid):
     with _lock:
         p = next((p for p in _mine() if p["id"] == pid), None)
-        if not p or p["status"] != "scheduled":
-            raise ValueError("Only posts that are still waiting can be cancelled.")
+        if not p:
+            raise ValueError("Post not found.")
         p["status"] = "cancelled"
+        p["error"] = None
         _save()
     _mirror(p)
 
