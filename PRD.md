@@ -1,7 +1,7 @@
 # PeakCut Editing Studio PRD
 
 **Status:** In progress; product scope drafted and first implementation slice delivered  
-**Scope:** Better automatic short creation and a responsive, real-time clip editor  
+**Scope:** Better automatic short creation, a responsive real-time clip editor, and video-based thumbnail creation/editing/upload
 **First principle:** Preserve the existing application, user data, settings, jobs, and clips.
 
 ## 1. Product goal
@@ -91,6 +91,20 @@ The current editor is a form with the rendered video preview. It does not offer 
 - Posting pause, account disconnect/deletion, account authorization, platform rate limits, and retry behavior continue to apply.
 - Do not imply that PeakCut controls post timing after a platform has accepted or rescheduled a post; show the actual state returned by the platform.
 
+### P1: Thumbnail creation, editing, and upload
+
+- Provide a thumbnail editor for each finished clip from its existing clip workflow.
+- Let the creator capture a still frame from any valid time inside the rendered clip and use it as the thumbnail base.
+- Let the creator upload a PNG, JPEG, or WebP image as a custom base, with browser-side preview before save.
+- Provide optional editable title text with a small set of readable treatments; render it into the saved image so it stays consistent when downloaded or posted.
+- Show a preview and provide **Save thumbnail** and **Restore generated thumbnail** actions.
+- Keep the current thumbnail until a replacement image is validated and successfully written. Keep the generated thumbnail available for restore after a custom image is saved.
+- Persist the selected cover path additively on the clip. Older clips without thumbnail metadata continue using their existing generated cover.
+- Keep thumbnails inside the owning clip's private media folder and enforce existing session ownership on generation, upload, save, and restore routes.
+- Validate frame time, image content, dimensions, and byte limits. Re-encode uploaded/canvas images to a normalized JPEG before saving.
+- Preserve a custom thumbnail across clip re-renders. Remove custom and temporary thumbnail assets when the clip is deleted.
+- Do not include Instagram credentials or post automatically; this feature only prepares a cover for the existing clip/post flow.
+
 ### P2: More editing improvements
 
 - Optional subject-aware reframing and facecam placement with user adjustment.
@@ -139,6 +153,7 @@ The current editor is a form with the rendered video preview. It does not offer 
 5. **Editor UI:** timeline trim, immediate settings preview, caption/layout controls, text editing, audio controls, responsive/accessibility behavior.
 6. **Automatic profiles and schedule UI:** creator defaults, per-clip overrides, review-first automation, opt-in auto-post integration, and user-selected post times.
 7. **Validation and rollout:** full regression and targeted tests, isolated manual end-to-end checks, security and accessibility review, then guarded rollout with fallback.
+8. **Thumbnail editor:** document the frame/image/title workflow, add ownership-checked frame capture and normalized-image save/restore APIs, integrate the canvas editor in the clip dialog, preserve custom covers through re-render/delete, and validate with synthetic media and disposable data.
 
 ## 9. Acceptance checklist before full testing
 
@@ -153,6 +168,9 @@ The current editor is a form with the rendered video preview. It does not offer 
 - [ ] Copy/title/description, download, queue, and post flows still work.
 - [ ] Auto-post remains disabled unless the existing explicit opt-in and safeguards apply.
 - [x] User-selected post time uses an explicit timezone and respects caps, gaps, pause state, and account authorization.
+- [x] A creator can extract an in-range frame, load a custom image, edit optional cover text, preview, and save a thumbnail.
+- [x] Existing thumbnails survive invalid uploads, failed writes, and clip re-renders; the generated cover can be restored.
+- [x] Thumbnail endpoints enforce ownership, file limits, safe image decoding, cleanup, and disposable-data tests.
 - [ ] Scheduled posts can be reviewed and cancelled; existing scheduled posts survive restart unchanged.
 - [ ] Live clipping still works and legacy layouts/styles remain selectable.
 - [ ] Keyboard-only and narrow-screen editor flows are usable.

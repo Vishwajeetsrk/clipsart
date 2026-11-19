@@ -36,6 +36,7 @@ These rules apply to every future feature, fix, test, and release in this reposi
 ## Rendering and UX
 
 - A render or preview failure must preserve the last valid export and provide a retryable error.
+- A thumbnail update keeps the current cover until the replacement is normalized and saved; generated covers remain restorable, and custom covers survive clip re-renders.
 - Long media operations must report progress and must not block unrelated UI actions.
 - Keep responsive layouts, semantic form labels, keyboard access, visible focus, readable contrast, and accessible status updates.
 - Preserve the current visual system and existing caption/layout choices unless the user changes them.

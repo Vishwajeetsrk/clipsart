@@ -425,7 +425,11 @@ def render_one(job, clip, words):
         next_version = int(clip.get("version", 0)) + 1
         render_name = f"{clip['id']}.v{next_version}"
         out = render.render_clip(src, d / "clips", render_name, local, near, job["width"], job["height"])
-        clip.update(out, status="done", version=next_version, error=None, render_error=None)
+        old_cover = clip.get("cover")
+        generated_cover = out.get("cover") or clip.get("generated_cover") or old_cover
+        clip.update(out, generated_cover=generated_cover, status="done", version=next_version, error=None, render_error=None)
+        if clip.get("thumbnail_custom") and old_cover and (d / "clips" / Path(old_cover).name).is_file():
+            clip["cover"] = Path(old_cover).name
         post = {k: clip[k] for k in ("title", "description", "hashtags", "hook", "start", "end", "score")}
         (d / "clips" / f"{clip['id']}.json").write_text(json.dumps(post, indent=1), encoding="utf-8")
         if clip["version"] == 1:

@@ -41,6 +41,12 @@ def delete_clip(jid: str, cid: str) -> bool:
     overlay = Path(str(clip.get("overlay_file") or "")).name
     if overlay.startswith(f"{cid}.overlay-") and Path(overlay).suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"):
         (d / "clips" / overlay).unlink(missing_ok=True)
+    thumbnail = Path(str(clip.get("cover") or "")).name
+    if thumbnail.startswith(f"{cid}.thumb-") and thumbnail.endswith(".jpg"):
+        (d / "clips" / thumbnail).unlink(missing_ok=True)
+    draft = Path(str(clip.get("thumbnail_draft") or "")).name
+    if draft.startswith(f"{cid}.thumb-draft-") and draft.endswith(".jpg"):
+        (d / "clips" / draft).unlink(missing_ok=True)
     for preview in (d / "clips").glob(f"{cid}.preview-*.mp4"):
         preview.unlink(missing_ok=True)
     for stem in {cid, Path(str(clip.get("file") or cid)).stem}:     # the captions and the notes kept beside the clip

@@ -1057,7 +1057,7 @@ function startTour() {
 /* ============================================================ state */
 const S = {status:{styles:{}, layouts:{}}, jobs:[], creators:[], accounts:[], overview:null, settings:null,
            view:"overview", ctab:"clips"};
-const D = {jid:null, cid:null, sig:""};
+const D = {jid:null, cid:null, sig:"", thumbBase:null};
 const creatorId = () => S.view.startsWith("c:") ? S.view.slice(2) : null;
 const creator = () => S.creators.find(c => c.id === creatorId());
 const jobOf = id => S.jobs.find(j => j.id === id);
@@ -2161,6 +2161,15 @@ function drawClipDlg(full) {
         <label class="f">Image size <input data-f="overlay_scale" type="range" min="0.08" max="0.5" step="0.01" value="${c.overlay_scale ?? 0.24}"></label>
         <div class="two"><label class="f">Horizontal position<input data-f="overlay_x" type="range" min="0" max="1" step="0.01" value="${c.overlay_x ?? 0.78}"></label>
           <label class="f">Vertical position<input data-f="overlay_y" type="range" min="0" max="1" step="0.01" value="${c.overlay_y ?? 0.82}"></label></div>
+        <h3>Thumbnail</h3>
+        <p class="help">Choose a frame from this clip or upload your own image. Add optional title text, preview it, and save.</p>
+        <canvas id="thumb-canvas" width="720" height="1280" aria-label="Thumbnail preview" style="width:144px;max-height:256px;object-fit:contain;align-self:center;background:#17110E;border-radius:8px"></canvas>
+        <div class="two"><label class="f">Frame time (seconds)<input id="thumb-time" type="number" min="0" max="${Math.max(0, Number(c.end) - Number(c.start) - 0.05).toFixed(2)}" step="0.1" value="${Math.min(1, Math.max(0, Number(c.end) - Number(c.start) - 0.1)).toFixed(1)}"></label>
+          <button class="btn" data-act="thumbframe" style="align-self:end">Capture frame</button></div>
+        <label class="f">Your image<input id="thumb-image" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
+        <label class="f">Thumbnail text<input id="thumb-title" maxlength="80" placeholder="Optional title on the cover" value="${esc(c.thumbnail_text || c.title || "")}"></label>
+        <label class="f">Text style<select id="thumb-style">${opts({bold:"Bold", clean:"Clean", neon:"Neon"}, c.thumbnail_style || "bold")}</select></label>
+        <div class="row"><button class="btn primary" data-act="thumbsave">Save thumbnail</button><button class="btn" data-act="thumbreset" ${c.thumbnail_custom ? "" : "disabled"}>Restore generated</button></div>
         <div class="two"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" min="${c.start}" max="${c.end - 3}" value="${c.start}"></label>
           <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" min="${c.start + 3}" max="${c.end}" value="${c.end}"></label></div>
         <div class="trimline"><span>In</span><input id="trim-in" type="range" min="${c.start}" max="${c.end - 3}" step="0.5" value="${c.start}" aria-label="Trim start time"></div>
@@ -2195,10 +2204,59 @@ function drawClipDlg(full) {
   D.sig = sig;
   put($("#dposts"), postPills(c));
   bindTrimPreview();
+  if (full) initThumbnailEditor(c, m);
   initPostSchedule();
 }
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+function paintThumbnail() {
+  const canvas = $("#thumb-canvas"), ctx = canvas?.getContext("2d"), image = D.thumbBase;
+  if (!ctx || !image) return;
+  const scale = Math.max(canvas.width / image.width, canvas.height / image.height);
+  const w = image.width * scale, h = image.height * scale;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+  const title = $("#thumb-title")?.value.trim();
+  if (!title) return;
+  const style = $("#thumb-style")?.value || "bold";
+  const font = style === "clean" ? "600 56px Arial, sans-serif" : style === "neon" ? "900 64px Arial Black, Arial, sans-serif" : "900 68px Arial Black, Arial, sans-serif";
+  ctx.font = font; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const words = title.split(/\s+/), lines = []; let line = "";
+  for (const word of words) { const test = line ? line + " " + word : word; if (line && ctx.measureText(test).width > 620 && lines.length < 2) { lines.push(line); line = word; } else line = test; }
+  if (line) lines.push(line);
+  if (lines.length > 2) lines.splice(2, lines.length - 2);
+  const band = ctx.createLinearGradient(0, 760, 0, 1280); band.addColorStop(0, "rgba(0,0,0,0)"); band.addColorStop(1, "rgba(0,0,0,.82)");
+  ctx.fillStyle = band; ctx.fillRect(0, 700, 720, 580);
+  let size = style === "clean" ? 56 : style === "neon" ? 64 : 68; ctx.font = `${style === "clean" ? "600" : "900"} ${size}px ${style === "neon" ? "Arial Black, Arial" : "Arial"}`;
+  const gap = size * 1.15, startY = 1120 - (lines.length - 1) * gap / 2;
+  lines.forEach((text, i) => {
+    const shown = text; while (ctx.measureText(shown).width > 650 && size > 38) { size -= 2; ctx.font = `${style === "clean" ? "600" : "900"} ${size}px Arial`; }
+    ctx.lineWidth = style === "clean" ? 4 : 8; ctx.strokeStyle = "rgba(0,0,0,.9)"; ctx.lineJoin = "round";
+    ctx.shadowColor = style === "neon" ? "#00E5FF" : "transparent"; ctx.shadowBlur = style === "neon" ? 22 : 0;
+    ctx.fillStyle = style === "neon" ? "#B8FBFF" : "#FFFFFF"; ctx.strokeText(shown.toUpperCase(), 360, startY + i * gap, 660); ctx.fillText(shown.toUpperCase(), 360, startY + i * gap, 660);
+    ctx.shadowBlur = 0;
+  });
+}
+function setThumbnailBase(url) {
+  const image = new Image(); image.onload = () => { D.thumbBase = image; paintThumbnail(); };
+  image.onerror = () => toast("Could not load that thumbnail image.", "bad"); image.src = url;
+}
+function initThumbnailEditor(c, mediaPath) {
+  D.thumbBase = null;
+  const url = c.thumbnail_draft ? `${mediaPath}${encodeURIComponent(c.thumbnail_draft)}?v=${Date.now()}` : `${mediaPath}${encodeURIComponent(c.cover)}?v=${c.version}`;
+  setThumbnailBase(url);
+}
+document.addEventListener("input", e => { if (e.target.id === "thumb-title") paintThumbnail(); });
+document.addEventListener("change", e => {
+  if (e.target.id === "thumb-style") paintThumbnail();
+  if (e.target.id === "thumb-image") {
+    const file = e.target.files?.[0]; if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { toast("Choose a PNG, JPEG, or WebP image.", "bad"); e.target.value = ""; return; }
+    if (file.size > 12 * 1024 * 1024) { toast("Thumbnails are limited to 12 MB.", "bad"); e.target.value = ""; return; }
+    if (D.thumbURL) URL.revokeObjectURL(D.thumbURL);
+    D.thumbURL = URL.createObjectURL(file); setThumbnailBase(D.thumbURL);
+  }
+});
 function bindTrimPreview() {
   const video = $("#stage video"), start = $('#clipdlg [data-f="start"]'), end = $('#clipdlg [data-f="end"]');
   if (!video || !start || !end || video.dataset.trimReady) return;
@@ -2392,6 +2450,28 @@ document.addEventListener("click", async e => {
       try { await api(`/api/jobs/${D.jid}/clips/${D.cid}/overlay`, {method:"POST", body:fd}); await tick(); D.sig = ""; drawClipDlg(true); toast("Image added. Preview it or render the clip to apply it.", "ok"); }
       finally { b.disabled = false; }
       return;
+    }
+    if (a === "thumbframe") {
+      const seconds = Number($("#thumb-time")?.value);
+      if (!Number.isFinite(seconds)) return toast("Enter a valid time within the clip.", "bad");
+      b.disabled = true;
+      try { const r = await send(`/api/jobs/${D.jid}/clips/${D.cid}/thumbnail/frame`, {seconds}); setThumbnailBase(`${r.file}?v=${Date.now()}`); toast("Frame captured. Add text or save it as your thumbnail.", "ok"); }
+      finally { b.disabled = false; }
+      return;
+    }
+    if (a === "thumbsave") {
+      const canvas = $("#thumb-canvas"); if (!canvas || !D.thumbBase) return toast("Wait for the thumbnail preview to load.", "bad");
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.92));
+      if (!blob) return toast("Could not prepare the thumbnail image.", "bad");
+      const fd = new FormData(); fd.append("file", blob, "thumbnail.jpg"); fd.append("title", $("#thumb-title")?.value || ""); fd.append("style", $("#thumb-style")?.value || "bold");
+      b.disabled = true;
+      try { await api(`/api/jobs/${D.jid}/clips/${D.cid}/thumbnail/save`, {method:"POST", body:fd}); await tick(); D.sig = ""; drawClipDlg(true); toast("Thumbnail saved.", "ok"); }
+      finally { b.disabled = false; }
+      return;
+    }
+    if (a === "thumbreset") {
+      if (!await ask("Restore generated thumbnail?", "This replaces the custom cover with the frame PeakCut generated when it made the clip.", "Restore")) return;
+      await api(`/api/jobs/${D.jid}/clips/${D.cid}/thumbnail/reset`, {method:"POST"}); await tick(); D.sig = ""; drawClipDlg(true); toast("Generated thumbnail restored.", "ok"); return;
     }
     if (a === "newcreator") {
       const dlg = $("#formdlg");

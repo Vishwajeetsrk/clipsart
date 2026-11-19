@@ -1,6 +1,6 @@
 # PeakCut Editing Studio Task List
 
-**Project status:** Exact-time scheduling, low-resolution edit preview, user-provided music mixing, and safe versioned exports implemented; automation/profile work remains.  
+**Project status:** Editor, exact-time scheduling, caption/effect, music, image overlay, and video-based thumbnail features implemented.
 **Last updated:** 2026-11-19  
 **Progress:** Scheduling and editing foundations implemented; combined full regression suite passed.
 
@@ -30,6 +30,18 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Render final versions to distinct filenames; failed re-renders keep the last good export available with a warning.
 - [x] Remove temporary preview and generated version files when the user deletes that clip.
 - [x] Run the full regression suite after preview and safe-version changes; all groups passed.
+
+## Thumbnail editor plan and implementation
+
+- [x] Specify user flow, safe defaults, compatibility behavior, ownership, upload limits, and acceptance criteria in `PRD.md`.
+- [x] Add thumbnail implementation steps to this task list before coding.
+- [x] Add frame capture from a finished clip with validated in-range time.
+- [x] Add browser canvas preview with optional title text styles and custom image import.
+- [x] Save normalized thumbnails without overwriting the current cover before validation; support restore to generated cover.
+- [x] Preserve custom thumbnails across final clip re-renders and delete thumbnail assets with their clip.
+- [x] Test capture, upload validation, save, restore, ownership, and rerender behavior on disposable data.
+- [ ] Manually inspect thumbnail controls and canvas sizing in the signed-in desktop and mobile editor.
+- [ ] Run full regression suite, check local app, and push changes only to `Vishwajeetsrk/clipsart`.
 
 ## Pending: product decisions
 
@@ -91,8 +103,8 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 ## Current progress
 
 - **Planning:** `PRD.md`, `GLOBAL_RULES.md`, and this task list are written. First-release choices for one-time scheduling, browser timezone, local preview, and user-provided music are recorded.
-- **Implementation:** exact-time scheduling, trim editing, low-resolution visual preview, user-provided music mixing, and safe versioned exports are implemented. Schedule edit/reschedule, speech ducking, adjustable fades, reusable profiles, and automatic editing remain pending.
-- **Testing:** full suite passed with UTF-8 output after the preview/version changes, including timezone, upload, ffmpeg mix/no-music, preview preservation, and failed-render rollback checks. Python compilation and JavaScript parsing passed.
+- **Implementation:** exact-time scheduling, trim editing, low-resolution visual preview, user-provided music, caption/effect choices, custom image overlays, safe versioned exports, and frame-based/custom thumbnail editing are implemented. Queued-post rescheduling, speech ducking, adjustable fades, reusable profiles, and automatic editing remain pending.
+- **Testing:** full disposable-data suite passed after thumbnail work, including seven thumbnail checks and existing caption, schedule, render, security, and storage groups. Python compilation and JavaScript parsing passed.
 - **Data safety:** feature tests used disposable directories. The live `data` folder was not used by tests or modified by the feature.
-- **Next:** implement queued-post rescheduling; then add reusable creator edit profiles and rule-based automatic editing. Finish manual end-to-end, legacy-data, accessibility, and responsive UI review before default rollout.
+- **Next:** manually inspect thumbnail editor sizing/keyboard flow, then continue queued-post rescheduling, reusable creator edit profiles, and rule-based automatic editing. Finish manual end-to-end, legacy-data, accessibility, and responsive UI review before default rollout.
 

@@ -16,7 +16,6 @@ storage.json
 *.log
 temp.syntax-check.js
 server.err
-temp.syntax-check.js
 
 # ---- this computer only
 .claude/

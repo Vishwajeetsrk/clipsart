@@ -57,6 +57,7 @@ def main() -> int:
                 ("connecting YouTube, Instagram and TikTok", ["tests/test_connect.py"]),
                 ("manual post scheduling and time zones", ["tests/test_scheduling.py"]),
                 ("music mix rendering", ["tests/test_render_audio.py"]),
+                ("video-based thumbnail editor", ["tests/test_thumbnails.py"]),
                 ("the new-version notice", ["tests/test_updates.py"]),
                 ("no limits by default", ["tests/test_limits.py"]),
                 ("captions never overlap, stuck clips, sentence endings", ["tests/test_stuck.py"]),

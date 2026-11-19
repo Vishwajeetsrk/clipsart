@@ -5,6 +5,7 @@ Everything under /api, /media and /oauth needs a session, except /api/auth/* and
 import hashlib
 import hmac
 import json
+import math
 import os
 import re
 import secrets
@@ -104,11 +105,12 @@ class Gate:
             piece = method == "PUT" and path.startswith("/api/upload/")
             music = method == "POST" and path.endswith("/music") and path.startswith("/api/jobs/")
             overlay = method == "POST" and path.endswith("/overlay") and path.startswith("/api/jobs/")
+            thumb = method == "POST" and path.endswith("/thumbnail/save") and path.startswith("/api/jobs/")
             cap = (((min(config.MAX_UPLOAD_MB, config.UPLOAD_PART_MB) if piece else config.MAX_UPLOAD_MB) + 8) * 1024 * 1024
-                   if path == "/api/upload" or piece else 9 * 1024 * 1024 if overlay else 33 * 1024 * 1024 if music else 256 * 1024)
+                   if path == "/api/upload" or piece else 13 * 1024 * 1024 if thumb else 9 * 1024 * 1024 if overlay else 33 * 1024 * 1024 if music else 256 * 1024)
             try:
                 if int(req.headers.get("content-length") or 0) > cap:
-                    message = "Music uploads are limited to 25 MB." if music else "Images are limited to 8 MB." if overlay else f"That file is too big. The limit is {config.MAX_UPLOAD_MB} MB." if path == "/api/upload" else "That request is too large."
+                    message = "Music uploads are limited to 25 MB." if music else "Thumbnails are limited to 12 MB." if thumb else "Images are limited to 8 MB." if overlay else f"That file is too big. The limit is {config.MAX_UPLOAD_MB} MB." if path == "/api/upload" else "That request is too large."
                     return await deny(413, message)
             except ValueError:
                 return await deny(400, "Bad request.")
@@ -963,6 +965,155 @@ async def clip_preview(jid: str, cid: str, body: dict = Body(...)):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"Could not make the preview: {safe.friendly(e, 250)}") from e
     return {"file": f"/media/{jid}/{file}", "width": 540, "height": 960}
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/thumbnail/frame")
+async def thumbnail_frame(jid: str, cid: str, body: dict = Body(...)):
+    """Extract a still frame from this user's finished clip for the thumbnail editor."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip or clip.get("status") != "done":
+        raise HTTPException(404, "No finished clip to make a thumbnail from.")
+    try:
+        seconds = float(body.get("seconds", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Choose a valid time in the clip.")
+    duration = max(0.0, float(clip.get("end", 0)) - float(clip.get("start", 0)))
+    if not math.isfinite(seconds) or seconds < 0 or seconds >= duration:
+        raise HTTPException(400, "Choose a time inside this clip.")
+    clips_dir = Path(job["dir"]) / "clips"
+    source = clips_dir / Path(str(clip.get("file") or "")).name
+    if not source.is_file():
+        raise HTTPException(404, "The finished clip file is missing.")
+    token = secrets.token_hex(8)
+    draft = f"{cid}.thumb-draft-{token}.jpg"
+    temp = clips_dir / f".{draft}.part.jpg"
+    try:
+        await run_in_threadpool(media.run, ["ffmpeg", "-y", "-v", "error", "-ss", f"{seconds:.3f}", "-i", str(source),
+                                             "-frames:v", "1", "-vf", "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
+                                             "-q:v", "3", str(temp)], timeout=45)
+        from PIL import Image
+        with Image.open(temp) as im:
+            im.verify()
+        os.replace(temp, clips_dir / draft)
+        old = Path(str(clip.get("thumbnail_draft") or "")).name
+        before = dict(clip)
+        clip["thumbnail_draft"] = draft
+        try:
+            jobs.save(job)
+        except Exception:
+            clip.clear()
+            clip.update(before)
+            (clips_dir / draft).unlink(missing_ok=True)
+            raise
+        if old.startswith(f"{cid}.thumb-draft-") and old != draft:
+            (clips_dir / old).unlink(missing_ok=True)
+        return {"file": f"/media/{jid}/{draft}", "width": 720, "height": 1280}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"Could not capture that frame: {safe.friendly(e, 200)}") from e
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/thumbnail/save")
+async def thumbnail_save(jid: str, cid: str, file: UploadFile = File(...), title: str = Form(""), style: str = Form("bold")):
+    """Normalize a browser-edited/uploaded thumbnail and atomically make it the clip cover."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip or clip.get("status") != "done":
+        raise HTTPException(404, "No finished clip to update.")
+    ext = Path(file.filename or "thumbnail.jpg").suffix.lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+        raise HTTPException(400, "Choose a JPEG, PNG, or WebP thumbnail.")
+    if style not in ("bold", "clean", "neon"):
+        raise HTTPException(400, "Choose a valid thumbnail text style.")
+    clips_dir = Path(job["dir"]) / "clips"
+    clips_dir.mkdir(parents=True, exist_ok=True)
+    token = secrets.token_hex(8)
+    temp = clips_dir / f".{cid}.thumb-{token}.part.jpg"
+    final = clips_dir / f"{cid}.thumb-{token}.jpg"
+    try:
+        size = 0
+        payload = bytearray()
+        while chunk := await file.read(1024 * 1024):
+            size += len(chunk)
+            if size > 12 * 1024 * 1024:
+                raise HTTPException(413, "Thumbnails are limited to 12 MB.")
+            payload.extend(chunk)
+        if not payload:
+            raise HTTPException(400, "Choose an image first.")
+        from PIL import Image, ImageOps
+        import io
+        try:
+            with Image.open(io.BytesIO(payload)) as probe:
+                if probe.format not in ("JPEG", "PNG", "WEBP") or probe.width < 1 or probe.height < 1 or probe.width * probe.height > 20_000_000:
+                    raise HTTPException(400, "Thumbnail must be a valid image up to 20 megapixels.")
+                probe.verify()
+            with Image.open(io.BytesIO(payload)) as image:
+                image = ImageOps.exif_transpose(image).convert("RGB")
+                image = ImageOps.fit(image, (720, 1280), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+                image.save(temp, "JPEG", quality=92, optimize=True)
+        except HTTPException:
+            raise
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(400, "That file is not a readable image.") from e
+        os.replace(temp, final)
+        old_cover = Path(str(clip.get("cover") or "")).name
+        old_draft = Path(str(clip.get("thumbnail_draft") or "")).name
+        before = dict(clip)
+        clip.update(cover=final.name, thumbnail_custom=True, thumbnail_draft=None,
+                    thumbnail_text=str(title).strip()[:80], thumbnail_style=style)
+        try:
+            jobs.save(job)
+        except Exception:
+            clip.clear()
+            clip.update(before)
+            raise
+        if old_cover.startswith(f"{cid}.thumb-"):
+            (clips_dir / old_cover).unlink(missing_ok=True)
+        if old_draft.startswith(f"{cid}.thumb-draft-"):
+            (clips_dir / old_draft).unlink(missing_ok=True)
+        return {"ok": True, "file": final.name}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        temp.unlink(missing_ok=True)
+        final.unlink(missing_ok=True)
+        raise HTTPException(500, f"Could not save the thumbnail: {safe.friendly(e, 200)}") from e
+    finally:
+        temp.unlink(missing_ok=True)
+        await file.close()
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/thumbnail/reset")
+def thumbnail_reset(jid: str, cid: str):
+    """Restore the latest generated cover and remove this clip's custom thumbnail."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip or clip.get("status") != "done":
+        raise HTTPException(404, "No finished clip to update.")
+    clips_dir = Path(job["dir"]) / "clips"
+    generated = Path(str(clip.get("generated_cover") or "")).name
+    if not generated:
+        generated = Path(str(clip.get("file") or "")).stem + ".jpg"
+    if not (clips_dir / generated).is_file():
+        raise HTTPException(404, "The generated thumbnail is not available to restore.")
+    old = Path(str(clip.get("cover") or "")).name
+    draft = Path(str(clip.get("thumbnail_draft") or "")).name
+    before = dict(clip)
+    clip.update(cover=generated, thumbnail_custom=False, thumbnail_draft=None)
+    try:
+        jobs.save(job)
+    except Exception:
+        clip.clear()
+        clip.update(before)
+        raise
+    for name in (old, draft):
+        if name.startswith(f"{cid}.thumb-"):
+            (clips_dir / name).unlink(missing_ok=True)
+    return {"ok": True, "file": generated}
 
 
 @app.post("/api/jobs/{jid}/clips/{cid}/music")
