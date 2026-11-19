@@ -29,11 +29,25 @@ STYLES = {
                 "strong": "00F0FF", "outline": 9, "pop": 124, "upper": True, "per": 2},
     "beast": {"label": "Beast Green", "font": "Poppins ExtraBold", "size": 132, "base": "FFFFFF", "active": "66FF00",
               "strong": "00FFFF", "outline": 8, "pop": 120, "upper": True, "per": 2},
+    "cyber": {"label": "Cyberpunk", "font": "Archivo Black", "size": 130, "base": "FFFFFF", "active": "FFAA00",
+              "strong": "FF00CC", "outline": 8, "pop": 120, "upper": True, "per": 2},
+    "karaoke": {"label": "Karaoke Coral", "font": "Poppins ExtraBold", "size": 126, "base": "E0E0E0", "active": "3355FF",
+                "strong": "00FFFF", "outline": 7, "pop": 115, "upper": False, "per": 3},
+    "minimal": {"label": "Minimalist", "font": "Poppins ExtraBold", "size": 94, "base": "DCDCDC", "active": "FFFFFF",
+                "strong": "FFFFFF", "outline": 4, "pop": 105, "upper": False, "per": 4},
 }
 HOOK = {"font": "Poppins ExtraBold", "size": 96, "ink": "14100E", "box": "FFFFFF", "pad_x": 36, "pad_y": 22, "radius": 26,
         "max_w": 900}
 FONT_FILES = {"Poppins ExtraBold": "Poppins-ExtraBold.ttf", "Anton": "Anton-Regular.ttf", "Archivo Black": "ArchivoBlack-Regular.ttf"}
 CAP_MAX_W = 960   # captions never run wider than this, whatever is said
+
+EMOJI_WORDS = {
+    "money": "💰", "cash": "💵", "rich": "🤑", "fire": "🔥", "lit": "🔥", "dead": "💀",
+    "kill": "💀", "shot": "🎯", "win": "🏆", "winner": "🏆", "clutch": "🔥", "crazy": "🤯",
+    "insane": "🤯", "shock": "⚡", "love": "❤️", "danger": "⚠️", "warn": "⚠️", "warning": "⚠️",
+    "stop": "🛑", "rocket": "🚀", "moon": "🚀", "goat": "🐐", "king": "👑", "run": "🏃",
+    "fast": "⚡", "game": "🎮", "secret": "🤫", "truth": "💡", "brain": "🧠", "idea": "💡"
+}
 
 
 class _Font:
@@ -167,7 +181,7 @@ def _hook_events(hook, dur, y):
     return ev
 
 
-def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y) -> str:
+def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, auto_emoji=False) -> str:
     st = STYLES.get(style_name, STYLES["bounce"])
     words = [dict(w, s=w["s"] - CAPTION_LEAD, e=w["e"] - CAPTION_LEAD) for w in words]
     strong = {_key(h) for h in highlight if _key(h)}
@@ -204,6 +218,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         texts = []
         for x in g:
             t = re.sub(r"[.,;:]+$", "", x["w"])
+            k = _key(x["w"])
+            if auto_emoji and k in EMOJI_WORDS:
+                t = f"{t} {EMOJI_WORDS[k]}"
             texts.append(t.upper() if st["upper"] else t)
         if not all(roman.drawable(t) for t in texts):
             # A script the caption font cannot draw (Japanese, Thai, Chinese...): its words cannot be measured, so
@@ -293,7 +310,7 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
         layout = "crop"     # no webcam found: the game fills the screen, which is still the right shape
     hook_y = _hook_y(layout, hook_y, face)
     ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
-                    clip.get("highlight_words", []), hook_y, cap_y)
+                    clip.get("highlight_words", []), hook_y, cap_y, auto_emoji=clip.get("auto_emoji", False))
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
     # folders easily reaches. Inside the work folder every name is short and relative (a drive colon would also

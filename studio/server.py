@@ -1776,6 +1776,98 @@ def post_action(pid: str, action: str):
     return {"ok": True}
 
 
+# ================================================================ Google Calendar & iCal Feed
+@app.get("/api/calendar/feed.ics")
+def calendar_feed(request: Request):
+    """RFC 5545 iCalendar feed of the user's scheduled and posted clips for Google Calendar, Apple Calendar, Outlook."""
+    from datetime import datetime, timezone
+    from fastapi.responses import Response
+
+    mine = posting._mine()
+    now_utc = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Clipsart//Content Calendar//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:Clipsart Content Schedule",
+        "X-WR-TIMEZONE:UTC",
+    ]
+
+    for p in mine:
+        due = p.get("due_at")
+        if not due:
+            continue
+        dt = datetime.fromtimestamp(due, timezone.utc)
+        dt_str = dt.strftime("%Y%m%dT%H%M%SZ")
+        dt_end = datetime.fromtimestamp(due + 900, timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+        job = jobs.get(p.get("job", ""))
+        clip = next((c for c in job["clips"] if c["id"] == p.get("clip")), {}) if job else {}
+
+        platform = (p.get("platform") or "Shorts").title()
+        title = clip.get("title") or job.get("meta", {}).get("name") or "Clipsart Scheduled Clip"
+        title = re.sub(r"[\r\n]+", " ", str(title)).strip()
+        hook = clip.get("hook") or ""
+        account = p.get("account_name") or ""
+        status = p.get("status") or "scheduled"
+
+        desc = f"Hook: {hook}\\nPlatform: {platform}\\nAccount: {account}\\nStatus: {status}"
+
+        lines.extend([
+            "BEGIN:VEVENT",
+            f"UID:clip-{p['id']}@clipsart",
+            f"DTSTAMP:{now_utc}",
+            f"DTSTART:{dt_str}",
+            f"DTEND:{dt_end}",
+            f"SUMMARY:[{platform}] {title}",
+            f"DESCRIPTION:{desc}",
+            "STATUS:CONFIRMED",
+            "END:VEVENT",
+        ])
+
+    lines.append("END:VCALENDAR")
+    ics_content = "\r\n".join(lines) + "\r\n"
+    return Response(content=ics_content, media_type="text/calendar",
+                    headers={"Content-Disposition": 'inline; filename="clipsart-schedule.ics"'})
+
+
+@app.get("/api/calendar/google-url/{pid}")
+def calendar_google_url(pid: str, request: Request, redirect: bool = False):
+    """Generates a 1-click Google Calendar web event creation link for a scheduled clip."""
+    from datetime import datetime, timezone
+    from urllib.parse import quote
+    from fastapi.responses import RedirectResponse
+
+    mine = posting._mine()
+    post = next((p for p in mine if p.get("id") == pid), None)
+    if not post or not post.get("due_at"):
+        raise HTTPException(404, "Scheduled post not found")
+
+    due = post["due_at"]
+    dt = datetime.fromtimestamp(due, timezone.utc)
+    dt_start = dt.strftime("%Y%m%dT%H%M%SZ")
+    dt_end = datetime.fromtimestamp(due + 900, timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    job = jobs.get(post.get("job", ""))
+    clip = next((c for c in job["clips"] if c["id"] == post.get("clip")), {}) if job else {}
+
+    platform = (post.get("platform") or "Shorts").title()
+    title = clip.get("title") or (job.get("meta") or {}).get("name") or "Clipsart Scheduled Clip"
+    hook = clip.get("hook") or ""
+    account = post.get("account_name") or ""
+
+    event_title = f"[{platform}] {title}"
+    details = f"Hook: {hook}\nPlatform: {platform}\nAccount: {account}\nStatus: {post.get('status')}"
+
+    url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={quote(event_title)}&dates={dt_start}/{dt_end}&details={quote(details)}"
+    if redirect or "text/html" in request.headers.get("accept", ""):
+        return RedirectResponse(url, status_code=302)
+    return {"url": url}
+
+
 @app.post("/api/alerts/test")
 def test_alert():
     if not alerts.configured():

@@ -78,8 +78,43 @@ Never put links, @handles, phone numbers, or "visit / buy / subscribe" calls in 
 """
 
 
-CATEGORIES = {"funny", "fail", "clutch", "rage", "shock", "take", "story", "other"}
+CATEGORIES = {"funny", "fail", "clutch", "rage", "shock", "take", "story", "insight", "lesson", "debate", "strategy", "other"}
 _CTRL = re.compile(r"[\x00-\x1f\x7f]+")
+
+CONTENT_PROMPTS = {
+    "gaming": HEAD,
+    "podcast": """You are a clip scout for short-form podcast and interview videos (YouTube Shorts, Reels, TikTok).
+Below is a timestamped transcript of part of an interview or podcast conversation.
+Lines marked (LOUD) are where vocal emotion or laughter peaked.
+
+Video title: {title}
+Channel: {uploader}
+
+Pick up to {n} moments that work as compelling standalone clips for people scrolling their feed:
+mind-blowing insights, controversial opinions, raw personal stories, emotional revelations,
+surprising statistics, life-changing advice, or heated debates with a strong punchline.
+""",
+    "education": """You are a clip scout for short-form educational and explainer videos (YouTube Shorts, Reels, TikTok).
+Below is a timestamped transcript of an educational video, lecture or documentary.
+
+Video title: {title}
+Channel: {uploader}
+
+Pick up to {n} moments that work as standalone viral educational clips:
+fascinating facts, 'did you know' revelations, clear breakdown of complex concepts,
+curiosity-driven questions with immediate payoffs, or counterintuitive truths.
+""",
+    "business": """You are a clip scout for short-form business, entrepreneurship and finance videos (YouTube Shorts, Reels, TikTok).
+Below is a timestamped transcript of a business talk, interview, or case study.
+
+Video title: {title}
+Channel: {uploader}
+
+Pick up to {n} moments that work as high-value standalone business clips:
+actionable wealth or career strategies, startup failure/success stories, market insights,
+psychology of success, productivity breakthroughs, or negotiation tactics.
+""",
+}
 
 GAME_RULES = """
 This stream is {game}. Pick the moments that only mean something with that game in mind:
@@ -270,7 +305,7 @@ def _game_rules(game):
     return GAME_RULES.format(game=_safe(games.name_of(game) or str(game), 40), tags=tags)
 
 
-def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=15, max_len=60, log=print, game=None):
+def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=15, max_len=60, log=print, game=None, content_type="gaming"):
     z = loud_zscore(db)
     lines = make_lines(words, z)
     if not lines:
@@ -283,11 +318,12 @@ def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=
         t += WINDOW_SEC - OVERLAP_SEC
     per_window = max(2, min(8, int(np.ceil(max_clips * 1.5 / len(windows))) + 1))
     extra = _game_rules(game)
+    head_template = CONTENT_PROMPTS.get(content_type, HEAD)
     for a, b in windows:
         chunk = [l for l in lines if a <= l["s"] < b]
         if len(chunk) < 3:
             continue
-        prompt = (HEAD.format(title=_safe(title) or "unknown", uploader=_safe(uploader) or "unknown", n=per_window)
+        prompt = (head_template.format(title=_safe(title) or "unknown", uploader=_safe(uploader) or "unknown", n=per_window)
                   + extra
                   + RULES.format(min_len=min_len, max_len=max_len, transcript=_fmt(chunk)))
         try:
