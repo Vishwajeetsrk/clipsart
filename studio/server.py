@@ -591,7 +591,7 @@ def status(request: Request):
     me_ = _me(request)
     return {"user": auth.public(me_), "update": updates.latest() if me_.is_admin else None, "accounts": config.ACCOUNTS, "disk_full": load.disk_full(), "no_ffmpeg": bool(_tools.missing()), "links": {"repo": config.REPO_URL, "follow": config.FOLLOW_URL}, "ai": usage.brief(), "unread": notices.unread(),
             "tour": not accounts.settings()["tour_done"],
-            "youtube": accounts.youtube_ready(), "connect": {p: accounts.can_connect(p) for p in accounts.PLATFORM_NAMES}, "max_upload_mb": config.MAX_UPLOAD_MB, "upload_part_mb": config.UPLOAD_PART_MB, "max_batch": config.MAX_ACTIVE_JOBS_PER_USER,
+            "youtube": accounts.youtube_ready(), "connect": {p: accounts.can_connect(p) for p in accounts.CORE_PLATFORMS}, "max_upload_mb": config.MAX_UPLOAD_MB, "upload_part_mb": config.UPLOAD_PART_MB, "max_batch": config.MAX_ACTIVE_JOBS_PER_USER,
             "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS}
 
 
@@ -1632,6 +1632,24 @@ def remove_account(aid: str):
     return {"ok": True}
 
 
+@app.post("/api/accounts/direct")
+def account_connect_direct(body: dict = Body(...)):
+    """Directly connects a social media account using an API token or Page ID."""
+    platform = str(body.get("platform", "")).strip().lower()
+    name = str(body.get("name", "")).strip()
+    token = str(body.get("token", "")).strip()
+    extra_id = str(body.get("extra_id", "")).strip()
+    if platform not in accounts.ALL_PLATFORMS:
+        raise HTTPException(400, f"Unsupported platform: {platform}")
+    if not token and platform in ("facebook", "twitter", "linkedin"):
+        raise HTTPException(400, "Token is required.")
+    try:
+        acc = accounts.connect_direct(platform, name, token, extra_id)
+        return {"ok": True, "account": acc}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
 # ---------------------------------------------------------------- connecting YouTube, Instagram and TikTok
 # Connect sends the browser to the platform's own sign-in page; the platform sends it back here, and the person lands
 # on Settings, Connected apps, with the account added (or a message saying what went wrong).
@@ -1699,16 +1717,42 @@ def storage_get(request: Request):
 
 
 @app.post("/api/storage/open")
-def storage_open(request: Request):
+def storage_open(request: Request, body: dict = Body(None)):
     from . import storage
     _admin(request)
     if not _on_this_computer(request):
         raise HTTPException(400, "The folder can only be opened on the computer Clipsart runs on.")
+    sub = (body or {}).get("sub", "") if isinstance(body, dict) else ""
     try:
-        storage.open_folder()
+        storage.open_folder(sub)
     except OSError as e:
         raise HTTPException(500, "Couldn't open the folder: " + safe.friendly(e, 200))
     return {"ok": True}
+
+
+@app.get("/api/storage/backup")
+def storage_backup(request: Request):
+    """Downloads a zip archive containing Clipsart's databases, settings, and account configurations."""
+    import io
+    import zipfile
+    _admin(request)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for fname in ("ai.json", "apps.json", "posts.json", "clipsart.db"):
+            fp = config.DATA_DIR / fname
+            if fp.is_file():
+                z.write(fp, arcname=fname)
+        users_dir = config.DATA_DIR / "users"
+        if users_dir.is_dir():
+            for root, _dirs, files in os.walk(users_dir):
+                for f in files:
+                    if f.endswith((".json", ".db", ".sqlite")):
+                        full_p = Path(root) / f
+                        rel_p = full_p.relative_to(config.DATA_DIR)
+                        z.write(full_p, arcname=str(rel_p))
+    buf.seek(0)
+    return Response(content=buf.getvalue(), media_type="application/zip",
+                    headers={"Content-Disposition": "attachment; filename=clipsart-backup.zip"})
 
 
 @app.post("/api/storage/pick")

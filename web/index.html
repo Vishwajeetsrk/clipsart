@@ -2099,7 +2099,14 @@ async function drawSettings() {
       body.innerHTML = `<section class="set-sec"><h2>Storage</h2><p class="help">Everything Clipsart keeps is in one folder: your videos, clips, recordings, creators and settings. You can open it, back it up, or move it to a drive with more room.</p>
           ${s.full ? `<div class="note" style="margin:0 0 14px">${ic("warn")}<span><b>This drive is almost full, so Clipsart can't take new videos.</b> ${gb(s.free_gb)} free on ${esc(s.drive)}; it needs at least ${gb(s.min_free_gb)}. Free up space, or move the folder to another drive below.</span></div>` : ""}
           ${s.pending ? `<div class="note" style="margin:0 0 14px">${ic("clock")}<span><b>The folder changes to ${esc(s.pending)} the next time Clipsart starts.</b> Close Clipsart and start it again. <button class="btn sm ghost" data-act="storcancel">Undo</button></span></div>` : ""}
-          <div class="stor-path"><code>${esc(s.path)}</code>${s.local ? `<button class="btn" data-act="storopen">${ic("folder")}Open folder</button>` : ""}</div>
+          <div class="stor-path"><code>${esc(s.path)}</code>
+            <div class="row" style="gap:6px;flex-wrap:wrap">
+              <button class="btn sm" data-act="copytext" data-t="${esc(s.path)}" title="Copy full directory path">${ic("copy")}Copy path</button>
+              ${s.local ? `<button class="btn sm primary" data-act="storopen" title="Open data folder in File Explorer">${ic("folder")}Open folder</button>
+              <button class="btn sm" data-act="storopen" data-sub="clips" title="Directly open clips directory in File Explorer">${ic("film")}Open Clips</button>` : ""}
+              <a class="btn sm" href="/api/storage/backup" download="clipsart-backup.zip" title="Download a zip backup of settings, accounts and creators">${ic("down")}Backup data</a>
+            </div>
+          </div>
           <div class="stor-bar ${s.full ? "low" : ""}" role="img" aria-label="${Math.round(usedPct)}% of the drive is used"><i style="width:${usedPct}%"></i></div>
           <div class="stor-nums"><span>Clipsart uses <b>${gb(s.used_gb)}</b></span><span><b>${gb(s.free_gb)}</b> free of ${gb(s.total_gb)} on ${esc(s.drive)}</span></div>
           ${s.fixed ? `<p class="sub" style="margin-top:16px">This folder is set with CLIPSART_DATA in the .env file. Change it there, or remove that line to choose it here.</p>`
@@ -2111,14 +2118,16 @@ async function drawSettings() {
     }
     if (tab === "apps") {
       const conn = S.accounts || [];
-      const app = (key, name, logo, bg, desc, action, list) => `<div class="appcard"><span class="applogo" style="background:${bg}">${logo}</span>
-          <div class="apptx"><b>${name}</b><span>${desc}</span>${list}</div><div class="appact">${action}</div></div>`;
       const mine = plat => conn.filter(a => (a.platform || a.label || "").toLowerCase().includes(plat));
       const listOf = arr => arr.length ? `<div class="applist">${arr.map(a => `<div><span class="pill ok">Connected</span><b>${esc(a.name)}</b><span class="sub">${esc(a.detail || "")}</span>
+          ${a.url ? `<a class="btn sm ghost" href="${esc(a.url)}" target="_blank" rel="noopener" title="Open in browser">${ic("upright")}Open</a>` : ""}
           <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}">Disconnect</button></div>`).join("")}</div>` : "";
       const yt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>';
       const ig = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg>';
       const tt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .59.04.86.13v-3.5a6.37 6.37 0 0 0-.86-.05A6.34 6.34 0 0 0 3.15 15.7a6.34 6.34 0 0 0 10.86 4.43 6.3 6.3 0 0 0 1.81-4.43V8.73a8.2 8.2 0 0 0 4.77 1.52V6.8a4.85 4.85 0 0 1-1-.11z"/></svg>';
+      const fb = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>';
+      const tw = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
+      const li = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.3a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28"/></svg>';
       const ok = S.status.connect || {}, admin = me.is_admin;
       const setup = admin ? await api("/api/apps").catch(() => null) : null;
       const GUIDE = {
@@ -2134,12 +2143,18 @@ async function drawSettings() {
           ["Create an app and add <b>Login Kit</b> and <b>Content Posting API</b> with Direct Post turned on.",
            "Add the address below as a redirect URI, with the scopes <b>user.info.basic</b> and <b>video.publish</b>.", "Paste the Client key and Client secret here."],
           "Until TikTok reviews your app, clips are posted as private: only the account owner sees them."]};
-      const card = (pf, name, logo, bg, desc) => {
+      const card = (pf, name, logo, bg, desc, directUrl, isDirectOnly = false) => {
         const accs = mine(pf), st = setup?.[pf], open = S.setupOpen === pf, g = GUIDE[pf];
-        const act = (ok[pf] ? `<a class="btn sm primary" href="/oauth/${pf}/start">${ic("plus")}${accs.length ? "Add another" : "Connect"}</a>`
-            : admin ? `<button class="btn sm primary" data-act="appsetup" data-p="${pf}">${ic("cog")}Set up</button>` : `<span class="pill">Not set up on this server</span>`)
-          + (ok[pf] && admin ? `<button class="btn sm ghost" data-act="appsetup" data-p="${pf}" title="Change this server's ${name} app">${ic("cog")}</button>` : "");
-        const panel = open && st ? `<div class="appsetup">
+        let act = `<a class="btn sm ghost" href="${directUrl}" target="_blank" rel="noopener" title="Directly open ${name}">${ic("upright")}Open</a>`;
+        if (isDirectOnly) {
+          act += `<button class="btn sm primary" data-act="directconnect" data-p="${pf}">${ic("plus")}${accs.length ? "Add another" : "Connect"}</button>`;
+        } else {
+          act += (ok[pf] ? `<a class="btn sm primary" href="/oauth/${pf}/start">${ic("plus")}${accs.length ? "Add another" : "Connect"}</a>`
+              : admin ? `<button class="btn sm primary" data-act="appsetup" data-p="${pf}">${ic("cog")}Set up</button>` : `<span class="pill">Not set up</span>`)
+            + (admin && !ok[pf] ? `<button class="btn sm ghost" data-act="directconnect" data-p="${pf}" title="Connect with Access Token">${ic("link")}Token</button>` : "")
+            + (ok[pf] && admin ? `<button class="btn sm ghost" data-act="appsetup" data-p="${pf}" title="Change this server's ${name} app">${ic("cog")}</button>` : "");
+        }
+        const panel = open && st && g ? `<div class="appsetup">
             <p class="sub">To let people connect ${name}, register this server once with <a href="${g[0]}" target="_blank" rel="noopener">${g[1]}</a>. It takes about five minutes.</p>
             <ol>${g[2].map(x => `<li>${x}</li>`).join("")}</ol>
             <div class="copyrow"><code>${esc(st.redirect)}</code><button class="btn sm" data-act="copytext" data-t="${esc(st.redirect)}">${ic("copy")}Copy</button></div>
@@ -2149,13 +2164,16 @@ async function drawSettings() {
             <p class="sub">${g[3]}</p>
             <div class="row"><button class="btn primary" data-act="appsave" data-p="${pf}">Save</button><button class="btn ghost" data-act="appsetup" data-p="">Close</button></div></div>` : "";
         return `<div class="appcard"><span class="applogo" style="background:${bg}">${logo}</span>
-          <div class="apptx"><b>${name}</b><span>${desc}</span>${listOf(accs)}</div><div class="appact">${act}</div>${panel}</div>`;
+          <div class="apptx"><b>${name}</b><span>${desc}</span>${listOf(accs)}</div><div class="appact" style="display:flex;gap:6px;align-items:center">${act}</div>${panel}</div>`;
       };
       body.innerHTML = `<section class="set-sec"><h2>Connected apps</h2><p class="help">Connect the accounts Clipsart posts clips to: press Connect, sign in on the platform's own page, and you're back here. Clipsart never sees your passwords. Then pick which accounts each creator posts to, in that creator's Setup.</p>
         <div class="apps">
-          ${card("youtube", "YouTube", yt, "#FF0000", "Post clips to your channel as Shorts.")}
-          ${card("instagram", "Instagram", ig, "linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)", "Post clips as Reels. Needs a Creator or Business account.")}
-          ${card("tiktok", "TikTok", tt, "#000", "Post clips straight to your TikTok.")}
+          ${card("youtube", "YouTube", yt, "#FF0000", "Post clips to your channel as Shorts.", "https://studio.youtube.com")}
+          ${card("instagram", "Instagram", ig, "linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)", "Post clips as Reels. Needs a Creator or Business account.", "https://www.instagram.com")}
+          ${card("tiktok", "TikTok", tt, "#000", "Post clips straight to your TikTok.", "https://www.tiktok.com")}
+          ${card("facebook", "Facebook Reels", fb, "#1877F2", "Post vertical video Reels directly to your Facebook Pages.", "https://business.facebook.com", true)}
+          ${card("twitter", "X / Twitter", tw, "#000", "Post high-engagement video clips directly to your X timeline.", "https://x.com", true)}
+          ${card("linkedin", "LinkedIn Video", li, "#0A66C2", "Publish business, educational, and thought-leadership clips to your profile or company page.", "https://www.linkedin.com", true)}
         </div></section>`;
     }
     if (tab === "alerts") {
@@ -2184,6 +2202,47 @@ async function drawSettings() {
   } catch (e) { body.innerHTML = `<div class="set-load">${esc(e.message)}</div>`; }
 }
 async function saveSettings() { const d = {}; $$("#sform [data-s]").forEach(i => d[i.dataset.s] = i.type === "checkbox" ? i.checked : i.value); await send("/api/settings", d, "PUT"); }
+
+function openDirectConnect(pf) {
+  const dlg = $("#formdlg");
+  const names = {
+    facebook: ["Facebook Reels & Pages", "Connect a Facebook Page to post vertical Reels.", "Page Name", "e.g. Clipsart Official Page", "Page ID", "e.g. 104829104810293", "Page Access Token", "EAAB...", "Get a Page Access Token with pages_manage_posts scope from <a href='https://developers.facebook.com/tools/explorer/' target='_blank' rel='noopener'>Meta Graph API Explorer</a> or Meta Business Suite."],
+    twitter: ["X / Twitter", "Connect an X (Twitter) account to post video clips.", "X Handle / Username", "e.g. @clipsart", "", "", "Bearer Token / API Key", "AAAAAAAAAAAAAAAAAAAAA...", "Generate an API / Bearer Token in your <a href='https://developer.x.com/en/portal/dashboard' target='_blank' rel='noopener'>X Developer Portal</a>."],
+    linkedin: ["LinkedIn Video", "Connect a LinkedIn profile or company page.", "Account Name", "e.g. VishwaJeet SrK", "Person URN / Member ID", "e.g. urn:li:person:me or urn:li:organization:123", "OAuth Access Token", "AQV...", "Generate an OAuth access token with w_member_social scope from the <a href='https://www.linkedin.com/developers/tools/oauth' target='_blank' rel='noopener'>LinkedIn OAuth Tool</a>."],
+    instagram: ["Instagram Reels", "Connect an Instagram Creator or Business account directly via token.", "Instagram Username", "e.g. @clipsart", "", "", "User Access Token", "IGQV...", "Get an Instagram user token with instagram_business_content_publish scope from Meta for Developers."]
+  };
+  const cfg = names[pf] || [pf, "Connect your account", "Account Name", "@name", "", "", "Access Token", "token...", ""];
+  dlg.innerHTML = `<form id="dc_form" method="dialog" class="dlg">
+    <button class="x" type="button" data-act="closeform" aria-label="Close">${ic("x")}</button>
+    <h2>Connect ${esc(cfg[0])}</h2>
+    <p class="help">${esc(cfg[1])}</p>
+    <label class="f">${esc(cfg[2])}<input id="dc_name" placeholder="${esc(cfg[3])}" autocomplete="off" autofocus></label>
+    ${cfg[4] ? `<label class="f">${esc(cfg[4])}<input id="dc_extra" placeholder="${esc(cfg[5])}" autocomplete="off" spellcheck="false"></label>` : ""}
+    <label class="f">${esc(cfg[6])}<input id="dc_token" type="password" placeholder="${esc(cfg[7])}" required autocomplete="off" spellcheck="false"></label>
+    ${cfg[8] ? `<p class="sub">${cfg[8]}</p>` : ""}
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-act="closeform">Cancel</button>
+      <button class="btn primary" type="submit">${ic("plus")}Connect account</button>
+    </div>
+  </form>`;
+  $("#dc_form").onsubmit = async (e) => {
+    e.preventDefault();
+    const token = $("#dc_token").value.trim();
+    if (!token) return toast("Access token is required", "bad");
+    const name = $("#dc_name").value.trim();
+    const extra_id = $("#dc_extra") ? $("#dc_extra").value.trim() : "";
+    try {
+      await send("/api/accounts/direct", {platform: pf, name, token, extra_id});
+      dlg.close();
+      toast(`${name || cfg[0]} connected!`, "ok");
+      S.accounts = await api("/api/accounts");
+      return drawSettings();
+    } catch (err) {
+      toast(err.message, "bad");
+    }
+  };
+  dlg.showModal();
+}
 
 /* ============================================================ clip editor */
 function openClip(jid, cid) { D.jid = jid; D.cid = cid; D.sig = ""; drawClipDlg(true); $("#clipdlg").showModal(); }
@@ -2667,7 +2726,16 @@ document.addEventListener("click", async e => {
     if (a === "settab") { e.preventDefault(); S.stab = d.k; remember("settings", d.k); return drawSettings(); }
     if (a === "updhow") return updateHow();
     if (a === "updlater") { try { localStorage.setItem("CLIPSART_update_seen", S.status.update?.latest || ""); } catch {} return drawShell(); }
-    if (a === "storopen") { await send("/api/storage/open"); return; }
+    if (a === "storopen") {
+      try {
+        await send("/api/storage/open", {sub: d.sub || ""});
+        toast(d.sub ? `Opening ${d.sub} folder in File Explorer…` : "Opening data folder in File Explorer…", "ok");
+      } catch (err) {
+        toast(err.message || "Could not open folder", "bad");
+      }
+      return;
+    }
+    if (a === "directconnect") return openDirectConnect(d.p);
     if (a === "storchange") { S.storOpen = !S.storOpen; S.storNew = ""; return drawSettings(); }
     if (a === "storpick") {
       b.disabled = true;

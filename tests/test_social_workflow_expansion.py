@@ -29,6 +29,8 @@ def check(name, got, want=True):
 
 
 u, _ = auth._create("creator@example.com", "Creator", password_hash="x")
+with db.engine.begin() as c:
+    c.execute(db.users.update().where(db.users.c.id == u.id).values(is_admin=True))
 client = TestClient(server.app, base_url="http://127.0.0.1:8765")
 client.cookies.set(auth.COOKIE, auth.start_session(u.id))
 origin = {"Origin": "http://127.0.0.1:8765", "Host": "127.0.0.1:8765"}
@@ -249,6 +251,31 @@ with ctx.as_user(u.id):
         posting._post(post_item_fb)
         check("posting facebook sets status to posted", post_item_fb["status"], "posted")
         check("posting facebook sets remote url", post_item_fb["url"], "https://www.facebook.com/watch/?v=fb_vid_123")
+
+    # 7. Test Direct Connect API for all social platforms
+    r_tw = client.post("/api/accounts/direct", json={"platform": "twitter", "name": "@podcastclip", "token": "tw_bearer_123"}, headers=origin)
+    check("direct connect twitter returns 200", r_tw.status_code, 200)
+    check("direct connect twitter name", r_tw.json()["account"]["name"], "@podcastclip")
+
+    r_li = client.post("/api/accounts/direct", json={"platform": "linkedin", "name": "Tech Founder", "token": "li_tok_123", "extra_id": "urn:li:person:123"}, headers=origin)
+    check("direct connect linkedin returns 200", r_li.status_code, 200)
+
+    r_fb = client.post("/api/accounts/direct", json={"platform": "facebook", "name": "Viral Page", "token": "fb_tok_123", "extra_id": "10099"}, headers=origin)
+    check("direct connect facebook returns 200", r_fb.status_code, 200)
+
+    # Verify all accounts returned with URLs by list_accounts
+    all_accs = client.get("/api/accounts", headers=origin).json()
+    acc_map = {a["platform"]: a for a in all_accs}
+    check("accounts list has twitter", "twitter" in acc_map, True)
+    check("accounts list has linkedin", "linkedin" in acc_map, True)
+    check("accounts list has facebook", "facebook" in acc_map, True)
+    check("accounts list has url", bool(acc_map["twitter"].get("url")), True)
+
+    # 8. Test Storage Backup Download (.zip)
+    r_backup = client.get("/api/storage/backup", headers=origin)
+    check("storage backup returns 200", r_backup.status_code, 200)
+    check("storage backup is zip", r_backup.headers.get("content-type"), "application/zip")
+    check("storage backup non-empty", len(r_backup.content) > 10, True)
 
 if fails:
     print(f"\n{len(fails)} test(s) failed!")

@@ -34,7 +34,10 @@ IG_UPLOAD = "https://rupload.facebook.com/ig-api-upload/v21.0"
 IG_SCOPES = "instagram_business_basic,instagram_business_content_publish"
 TT = "https://open.tiktokapis.com/v2"
 TT_SCOPES = "user.info.basic,video.publish"
-PLATFORM_NAMES = {"youtube": "YouTube", "instagram": "Instagram", "tiktok": "TikTok"}
+CORE_PLATFORMS = ("youtube", "instagram", "tiktok")
+ALL_PLATFORMS = {"youtube": "YouTube", "instagram": "Instagram", "tiktok": "TikTok",
+                 "facebook": "Facebook Reels", "twitter": "X (Twitter)", "linkedin": "LinkedIn"}
+PLATFORM_NAMES = ALL_PLATFORMS
 
 
 def _dir() -> Path:
@@ -108,7 +111,9 @@ def app_keys(name: str) -> tuple:
 
 
 def can_connect(platform: str) -> bool:
-    return all(app_keys(APP_FOR[platform]))
+    if platform in APP_FOR:
+        return all(app_keys(APP_FOR[platform]))
+    return platform in ALL_PLATFORMS
 
 
 def redirect_for(platform: str) -> str:
@@ -282,8 +287,78 @@ def get(aid):
 
 
 def list_accounts() -> list:
-    return [{"id": a["id"], "platform": a["platform"], "label": PLATFORM_NAMES[a["platform"]], "name": a["name"],
-             "added": a["added"], "detail": a.get("detail", "")} for a in _all()]
+    return [{"id": a["id"], "platform": a["platform"], "label": PLATFORM_NAMES.get(a["platform"], a["platform"].title()), "name": a["name"],
+             "added": a["added"], "detail": a.get("detail", ""), "url": a.get("url", "")} for a in _all()]
+
+
+def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> dict:
+    aid = f"{platform[:2]}_{secrets.token_hex(4)}"
+    if platform == "facebook":
+        page_id = extra_id or "page"
+        acc_name = name or f"Facebook Page ({page_id})"
+        acc = {
+            "id": aid,
+            "platform": "facebook",
+            "name": acc_name,
+            "page_id": page_id,
+            "access_token": token,
+            "added": time.time(),
+            "detail": f"Page ID: {page_id}" if page_id != "page" else "Facebook Reels",
+            "url": f"https://www.facebook.com/{page_id}" if page_id != "page" else "https://www.facebook.com"
+        }
+    elif platform == "twitter":
+        handle = name if name.startswith("@") else ("@" + name if name else "@twitter_user")
+        acc = {
+            "id": aid,
+            "platform": "twitter",
+            "name": handle,
+            "access_token": token,
+            "bearer_token": token,
+            "added": time.time(),
+            "detail": "X / Twitter API v2",
+            "url": f"https://x.com/{handle.lstrip('@')}"
+        }
+    elif platform == "linkedin":
+        person_id = extra_id or "urn:li:person:me"
+        acc_name = name or "LinkedIn Profile"
+        acc = {
+            "id": aid,
+            "platform": "linkedin",
+            "name": acc_name,
+            "person_id": person_id,
+            "access_token": token,
+            "added": time.time(),
+            "detail": "LinkedIn Video UGC",
+            "url": "https://www.linkedin.com"
+        }
+    elif platform == "instagram":
+        return instagram_add(token)
+    elif platform == "youtube":
+        acc = {
+            "id": aid,
+            "platform": "youtube",
+            "name": name or "YouTube Channel",
+            "access_token": token,
+            "added": time.time(),
+            "detail": "YouTube Shorts",
+            "url": "https://studio.youtube.com"
+        }
+    elif platform == "tiktok":
+        acc = {
+            "id": aid,
+            "platform": "tiktok",
+            "name": name if name.startswith("@") else ("@" + name if name else "@tiktok_user"),
+            "access_token": token,
+            "open_id": extra_id or "tiktok_user",
+            "added": time.time(),
+            "detail": "TikTok Direct Post",
+            "url": "https://www.tiktok.com"
+        }
+    else:
+        raise ValueError(f"Unknown platform: {platform}")
+
+    _put(acc)
+    return acc
 
 
 def _put(acc):

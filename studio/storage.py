@@ -80,15 +80,32 @@ def info(local: bool) -> dict:
             "local": bool(local)}
 
 
-def open_folder():
+def open_folder(sub: str = ""):
     """Show Clipsart's folder in the computer's file manager."""
-    p = str(config.DATA_DIR.resolve())
+    from . import ctx
+    p = config.DATA_DIR.resolve()
+    if sub == "clips":
+        user_jobs = config.user_dir(ctx.uid()) / "jobs"
+        if user_jobs.is_dir():
+            clip_dirs = list(user_jobs.glob("*/clips"))
+            if clip_dirs:
+                clip_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+                p = clip_dirs[0].resolve()
+            else:
+                p = user_jobs.resolve()
+    elif sub:
+        p = (p / sub).resolve()
+        p.mkdir(parents=True, exist_ok=True)
+    p_str = str(p)
     if sys.platform == "win32":
-        os.startfile(p)                                   # noqa: S606 - the owner's own folder, on their own computer
+        try:
+            os.startfile(p_str)
+        except Exception:
+            subprocess.Popen(["explorer.exe", p_str])
     elif sys.platform == "darwin":
-        subprocess.Popen(["open", p])
+        subprocess.Popen(["open", p_str])
     else:
-        subprocess.Popen(["xdg-open", p])
+        subprocess.Popen(["xdg-open", p_str])
 
 
 _PICK = ("import tkinter as tk\nfrom tkinter import filedialog\nr = tk.Tk()\nr.withdraw()\nr.attributes('-topmost', True)\n"

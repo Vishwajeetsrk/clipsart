@@ -252,3 +252,15 @@ Expand Clipsart's distribution and publishing capabilities across four focused p
 - **Fail-Safe & Non-Blocking**: External API timeouts or network outages (Discord, Telegram, X, LinkedIn, Notion) must never block local rendering or freeze queue progression.
 - **Secret Protection**: API tokens, bot keys, and client secrets remain strictly in secure user settings (`accounts.json` / `.env`) and are never exposed in logs or client-facing responses.
 - **Offline / Local Fallback**: When offline or if API credentials are not set, all video creation, editing, local downloads, and calendar feeds function flawlessly.
+
+### 11.4 Connected Apps Direct Open & Storage Management Upgrades (2026-11-19)
+- **All 6 Social Platforms in Connected Apps**:
+  - Full native support for YouTube, Instagram, TikTok, Facebook Reels, X / Twitter, and LinkedIn Video in the primary "Connected apps" tab.
+  - Direct 1-click "Open" buttons linking directly to platform portals (YouTube Studio, Instagram, TikTok, Meta Business Suite, X.com, LinkedIn).
+  - Direct 1-click "Open Profile / Channel" button on each connected account card.
+  - Direct Connect modal for instant token-based account connection (`POST /api/accounts/direct`).
+- **Storage Management & Direct File Explorer Access**:
+  - Direct folder opening in Windows File Explorer via `os.startfile` with fallback to `explorer.exe` (`POST /api/storage/open`).
+  - Subfolder jump targeting finished clips (`data/users/{uid}/jobs/.../clips`).
+  - 1-Click path copy to clipboard.
+  - 1-Click download of complete system configuration and database archive (`GET /api/storage/backup`).
