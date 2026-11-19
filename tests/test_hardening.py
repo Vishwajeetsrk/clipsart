@@ -114,4 +114,3 @@ check("a game typed by the creator cannot close the prompt's own tags", "<" not 
 check("the game a creator did type is still named", "Grand Theft Auto VI" in brain._game_rules("gta 6"), True)
 
 sys.exit(1 if fails else 0)
-
