@@ -366,9 +366,11 @@ def render_changes(clip, changes: dict) -> dict:
         raise ValueError("Those times aren't valid.")
     if not 3 <= new["end"] - new["start"] <= 180:
         raise ValueError("A clip can be 3 to 180 seconds long.")
-    for k in ("hook", "title", "description", "style", "layout", "effect", "animation"):
+    for k in ("hook", "title", "description", "style", "layout", "effect", "animation", "resolution"):
         if k in changes:
             new[k] = str(changes[k])[:{"hook": 60, "title": 100, "description": 2000}.get(k, 20)]
+    if new.get("resolution", "1080p") not in ("1080p", "4k", "720p"):
+        new["resolution"] = "1080p"
     if new.get("style") not in render.STYLES:
         new["style"] = DEFAULTS["style"]
     if new.get("layout") not in render.LAYOUTS:

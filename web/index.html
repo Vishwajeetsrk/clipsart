@@ -13,7 +13,7 @@
   --brand:#FF8B33;--brand-press:#F27A1F;--brand-ink:#2A1A12;--brand-soft:#FFF2E8;--brand-line:#FFD9BC;--brand-deep:#A9480A;
   --frame:#1E1612;--frame-2:#2C221D;--frame-line:rgba(255,255,255,.08);--frame-text:#F4EEEA;--frame-dim:#A99A91;
   --bg:#FFFFFF;--muted:#F7F4F1;--line:#EEE8E4;--line-2:#E1D9D3;
-  --text:#211813;--dim:#6D6159;--faint:#A0948C;
+  --text:#211813;--dim:#52463F;--faint:#7C7068;
   --good:#0F8A57;--good-soft:#E6F6EE;--bad:#D3343F;--bad-soft:#FDECEE;--live:#E5323F;
   --r-lg:16px;--r:12px;--r-sm:8px;
   color-scheme:light;
@@ -247,12 +247,15 @@ label.ck input{accent-color:var(--brand);margin:0}
 .tabbtn.on .n{background:var(--brand-soft);color:var(--brand-ink)}
 .tabbtn.on svg{color:var(--brand)}
 @keyframes tabin{from{transform:scaleX(.3);opacity:0}to{transform:none;opacity:1}}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--muted);color:var(--dim);white-space:nowrap;text-decoration:none}
-.pill.ok{color:var(--good);background:var(--good-soft)}
-.pill.bad{color:var(--bad);background:var(--bad-soft)}
-.pill.warn{color:var(--brand-deep);background:var(--brand-soft)}
-.pill.live{color:#fff;background:var(--live)}
-.pill.brand{color:var(--brand-ink);background:var(--brand)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--muted);color:var(--dim);white-space:nowrap;text-decoration:none;transition:transform .12s ease,box-shadow .12s ease}
+.pill.ok,.pill.posted{color:#0E7044!important;background:#E7F7ED!important;border:1px solid #A3E4BF!important}
+.pill.ok:hover,.pill.posted:hover{background:#D7F2E2!important}
+.pill.bad,.pill.error{color:#C5222E!important;background:#FDECEE!important;border:1px solid #F8B4B9!important}
+.pill.warn,.pill.pending{color:#B85006!important;background:#FFF3E6!important;border:1px solid #FFD4A8!important}
+.pill.live{color:#fff;background:var(--live);border:1px solid transparent}
+.pill.brand{color:var(--brand-ink);background:var(--brand);border:1px solid rgba(0,0,0,.08)}
+.pill.res-4k{color:#6D28D9!important;background:#F5F3FF!important;border:1px solid #DDD6FE!important;font-weight:700}
+kbd{background:var(--muted);border:1px solid var(--line-2);border-radius:4px;padding:1px 5px;font-size:11px;font-family:inherit;font-weight:600;color:var(--brand-ink)}
 .dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.3s infinite}
 @keyframes pulse{50%{opacity:.3}}
 .empty{border:1px dashed var(--line-2);border-radius:var(--r);padding:48px 20px;text-align:center;color:var(--dim);display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -1741,12 +1744,16 @@ async function makeClips() {
 function scoreCls(s) { return s >= 80 ? "s-hi" : s >= 60 ? "s-mid" : ""; }
 function postPills(c) {
   return Object.values(c.posts || {}).filter(p => p.status !== "cancelled").map(p => {
-    const isPosted = p.status === "posted" && p.remote_id && p.remote_id !== "web";
-    const isFailed = p.status === "failed";
-    const cls = isPosted ? "ok" : isFailed ? "bad" : "warn";
-    const when = p.status === "scheduled" ? `${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}` : isPosted ? "posted" : p.status;
-    const txt = `${esc(p.account_name)} · ${when}`;
-    return p.url && isPosted ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>` : `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
+    const isPosted = p.status === "posted";
+    const isFailed = p.status === "failed" || p.status === "error";
+    const cls = isPosted ? "ok posted" : isFailed ? "bad error" : "warn pending";
+    const statusTxt = isPosted ? "posted" : isFailed ? "error" : (p.status === "scheduled" && p.due_at) ? clock(p.due_at) : (p.status || "pending");
+    const txt = `${esc(p.account_name || "Account")} · ${statusTxt}`;
+    const tip = p.error ? ` title="${esc(p.error)}"` : (isPosted ? ` title="View on ${esc(p.platform || 'platform')}"` : "");
+    const dot = isPosted ? `<span style="width:6px;height:6px;border-radius:50%;background:#0E7044;display:inline-block;flex:none"></span>`
+      : isFailed ? `<span style="width:6px;height:6px;border-radius:50%;background:#C5222E;display:inline-block;flex:none"></span>`
+      : `<span style="width:6px;height:6px;border-radius:50%;background:#B85006;display:inline-block;flex:none"></span>`;
+    return p.url && isPosted ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener"${tip}>${dot}${txt}</a>` : `<span class="pill ${cls}"${tip}>${dot}${txt}</span>`;
   }).join("");
 }
 function clipHtml(j, c) {
@@ -1755,9 +1762,10 @@ function clipHtml(j, c) {
     : c.status === "error" ? `<span class="making" style="animation:none;color:var(--bad);background:var(--bad-soft)">Could not make this clip. Open it to try again.</span>`
     : `<span class="making">${c.status === "rendering" ? "Making this clip…" : "Waiting its turn…"}</span>`;
   const key = `c:${j.id}:${c.id}`, busyClip = c.status === "queued" || c.status === "rendering";
+  const is4k = c.resolution === "4k" || (c.width && c.width >= 2160);
   return `<article class="clip ${sel().has(key) ? "picked" : ""}">
     <button class="shot" data-act="openclip" ${a} aria-label="Open clip: ${esc(c.title || c.hook)}">${body}
-      <span class="badge l ${scoreCls(c.score)}" title="AI score">${c.score || "Hand"}</span><span class="badge r">${fmt(c.end - c.start)}</span></button>
+      <span class="badge l ${scoreCls(c.score)}" title="AI score">${c.score || "Hand"}</span><span class="badge r">${is4k ? '<span style="color:#6D28D9;font-weight:700;margin-right:4px">4K</span>' : ''}${fmt(c.end - c.start)}</span></button>
     <div class="clip-body">
       <div class="hook">${esc(c.hook || "Untitled clip")}</div>
       <div class="ttl">${esc(c.title)}</div>
@@ -1998,7 +2006,10 @@ function drawOverview() {
   const sum = k => o.creators.reduce((a, r) => a + r[k], 0);
   const d14 = k => (o.daily || []).reduce((a, d) => a + d[k], 0);
   const state = r => r.state === "recording" ? `<span class="pill live"><span class="dot"></span>Recording</span>` : r.state === "waiting" ? `<span class="pill warn">Waiting for live</span>` : `<span class="pill">Idle</span>`;
-  const pst = p => (p.status === "posted" && p.remote_id && p.remote_id !== "web") ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}</span>`;
+  const pst = p => p.status === "posted" ? `<span class="pill ok posted"><span style="width:6px;height:6px;border-radius:50%;background:#0E7044;display:inline-block;flex:none"></span>Posted</span>`
+    : (p.status === "failed" || p.status === "error") ? `<span class="pill bad error" title="${esc(p.error || '')}"><span style="width:6px;height:6px;border-radius:50%;background:#C5222E;display:inline-block;flex:none"></span>Error</span>`
+    : p.status === "posting" ? `<span class="pill warn pending"><span style="width:6px;height:6px;border-radius:50%;background:#B85006;display:inline-block;flex:none"></span>Posting now</span>`
+    : `<span class="pill warn pending"><span style="width:6px;height:6px;border-radius:50%;background:#B85006;display:inline-block;flex:none"></span>Pending · ${clock(p.due_at)}${p.scheduled_timezone ? ` · ${esc(p.scheduled_timezone)}` : ""}</span>`;
   const steps = nextSteps(o);
   put(box, `<div class="tiles">
       <div class="tile"><i>${ic("radio")}</i><b>${o.recording}</b><span>Recording now</span></div>
@@ -2340,10 +2351,19 @@ function drawClipDlg(full) {
           <p class="help">Caption styles: <b>Hormozi Gold</b> · <b>Beast Green</b> · <b>Cyberpunk</b> · <b>Karaoke</b> · <b>Minimalist</b> · Bounce · Hype · Clean · Neon Glow · Bold Box · Cinematic</p>
           <div class="two"><label class="f">Video effect<select data-f="effect">${opts({none:"Original", warm:"Warm", vivid:"Vivid", mono:"Black & white", vintage:"Vintage"}, c.effect || "none")}</select></label>
             <label class="f">Animation<select data-f="animation">${opts({none:"None", pulse:"Slow pulse"}, c.animation || "none")}</select></label></div>
+          <div class="two"><label class="f">Export Quality / Resolution<select data-f="resolution">
+            <option value="1080p" ${(!c.resolution || c.resolution === '1080p') ? 'selected' : ''}>1080p Full HD (1080×1920) · Standard</option>
+            <option value="4k" ${c.resolution === '4k' ? 'selected' : ''}>✨ 4K Ultra HD (2160×3840) · Crisp & High Bitrate</option>
+            <option value="720p" ${c.resolution === '720p' ? 'selected' : ''}>720p HD (720×1280) · Fast Export</option>
+          </select></label>
+          <div style="display:flex;align-items:center;font-size:12px;color:var(--dim);gap:6px;align-self:end;padding-bottom:6px">
+            ${c.resolution === '4k' ? '<span class="pill res-4k">4K Ready (2160×3840)</span>' : '<span class="pill">Full HD (1080×1920)</span>'}
+          </div></div>
           <div class="two time-inputs"><label class="f">Start (seconds)<input data-f="start" type="number" step="0.5" min="${c.start}" max="${c.end - 3}" value="${c.start}"></label>
             <label class="f">End (seconds)<input data-f="end" type="number" step="0.5" min="${c.start + 3}" max="${c.end}" value="${c.end}"></label></div>
           <div class="trimline"><span>In</span><input id="trim-in" type="range" min="${c.start}" max="${c.end - 3}" step="0.5" value="${c.start}" aria-label="Trim start time"></div>
           <div class="trimline"><span>Out</span><input id="trim-out" type="range" min="${c.start + 3}" max="${c.end}" step="0.5" value="${c.end}" aria-label="Trim end time"></div>
+          <p class="help" style="margin:2px 0 0 0">⌨️ <b>Editor shortcuts</b>: <kbd>Space</kbd> Play/Pause · <kbd>I</kbd> Set In · <kbd>O</kbd> Set Out · <kbd>←</kbd> <kbd>→</kbd> Seek</p>
 
           <details style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:4px">
             <summary style="cursor:pointer;font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">🎵 Background Music & Audio Mixing</summary>
@@ -2437,7 +2457,7 @@ function drawClipDlg(full) {
           </div>
 
           <div class="clip-export-bar">
-            ${c.status === "done" ? `<a class="btn primary sm" href="${m}${esc(c.file)}?download=1">${ic("down")}Download MP4</a>
+            ${c.status === "done" ? `<a class="btn primary sm" href="${m}${esc(c.file)}?download=1">${ic("down")}Download MP4 ${(c.resolution === '4k' || (c.width && c.width >= 2160)) ? '<span class="pill res-4k" style="font-size:10px;padding:1px 6px;margin-left:4px">4K</span>' : ''}</a>
             <button class="btn ghost sm" data-act="communitydrop" title="Drop video directly to configured Discord or Telegram">${ic("send")}Drop MP4</button>
             <button class="btn ghost sm" data-act="notionsync" title="Sync clip to Notion Kanban board">${ic("link")}Notion</button>
             <button class="btn ghost sm" data-act="cloudexport" title="Save clip to configured Google Drive / Dropbox folder">${ic("folder")}Save to Cloud</button>` : ""}
@@ -2531,12 +2551,52 @@ function syncTrimPreview(input) {
     const base = Number(video.dataset.baseStart || 0);
     video.dataset.trimStart = String(Math.max(0, a - base));
     video.dataset.trimEnd = String(Math.max(0, b - base));
-    if (video.currentTime < Number(video.dataset.trimStart) || video.currentTime >= Number(video.dataset.trimEnd))
+    if (input === outRange || input === end) {
+      video.currentTime = Math.max(0, Number(video.dataset.trimEnd) - 0.2);
+    } else {
       video.currentTime = Number(video.dataset.trimStart);
+    }
   }
 }
 $("#clipdlg").addEventListener("input", e => {
   if (["trim-in", "trim-out"].includes(e.target.id) || ["start", "end"].includes(e.target.dataset.f)) syncTrimPreview(e.target);
+});
+document.addEventListener("keydown", e => {
+  const dlg = $("#clipdlg");
+  if (!dlg || !dlg.open) return;
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+  const video = $("#stage video");
+  if (!video) return;
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (video.paused) video.play(); else video.pause();
+  } else if (e.key === "ArrowLeft" || e.key === "j" || e.key === "J") {
+    e.preventDefault();
+    video.currentTime = Math.max(0, video.currentTime - (e.shiftKey ? 0.2 : 1.0));
+  } else if (e.key === "ArrowRight" || e.key === "l" || e.key === "L") {
+    e.preventDefault();
+    video.currentTime = Math.min(video.duration || 9999, video.currentTime + (e.shiftKey ? 0.2 : 1.0));
+  } else if (e.key === "i" || e.key === "I") {
+    e.preventDefault();
+    const base = Number(video.dataset.baseStart || 0);
+    const startInput = $('#clipdlg [data-f="start"]');
+    if (startInput) {
+      const t = Math.max(0, (base + video.currentTime)).toFixed(2);
+      startInput.value = t;
+      syncTrimPreview(startInput);
+      toast(`In point set: ${t}s`, "ok");
+    }
+  } else if (e.key === "o" || e.key === "O") {
+    e.preventDefault();
+    const base = Number(video.dataset.baseStart || 0);
+    const endInput = $('#clipdlg [data-f="end"]');
+    if (endInput) {
+      const t = Math.max(0, (base + video.currentTime)).toFixed(2);
+      endInput.value = t;
+      syncTrimPreview(endInput);
+      toast(`Out point set: ${t}s`, "ok");
+    }
+  }
 });
 function initPostSchedule() {
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", out = $("#post-zone");

@@ -51,11 +51,23 @@ def _day_in(t, timezone):
 
 def _mirror(p):
     """Copy the post's state onto its clip so the clip card can show it."""
-    job = jobs.get(p["job"])
+    job = jobs.get(p["job"]) or jobs._jobs.get(p["job"])
     clip = next((c for c in job["clips"] if c["id"] == p["clip"]), None) if job else None
     if clip is not None:
-        clip.setdefault("posts", {})[p["id"]] = {k: p.get(k) for k in ("account_name", "platform", "status", "url", "due_at", "error")}
+        clip.setdefault("posts", {})[p["id"]] = {k: p.get(k) for k in ("account_name", "platform", "status", "url", "due_at", "error", "remote_id")}
         jobs.save(job)
+
+
+def sync_all_to_clips():
+    """Ensure all posts are mirrored onto their clip objects."""
+    with _lock:
+        for p in _posts:
+            job = jobs._jobs.get(p.get("job"))
+            if job:
+                for c in job.get("clips", []):
+                    if c["id"] == p.get("clip"):
+                        c.setdefault("posts", {})[p["id"]] = {k: p.get(k) for k in ("account_name", "platform", "status", "url", "due_at", "error", "remote_id")}
+                jobs.save(job)
 
 
 def _next_slot(account_id, gap_min, cap):
@@ -343,6 +355,7 @@ def digest_text() -> str:
 
 
 def start():
+    sync_all_to_clips()
     with _lock:
         for p in _posts:
             if p["status"] == "posting":  # interrupted mid-upload last time

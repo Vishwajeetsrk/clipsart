@@ -11,6 +11,12 @@ from .media import NO_WINDOW, run
 
 W, H = config.OUT_W, config.OUT_H
 
+RESOLUTIONS = {
+    "1080p": {"w": 1080, "h": 1920, "bitrate": "6M", "crf": "21", "label": "1080p Full HD"},
+    "4k": {"w": 2160, "h": 3840, "bitrate": "22M", "crf": "18", "label": "4K Ultra HD"},
+    "720p": {"w": 720, "h": 1280, "bitrate": "3.5M", "crf": "23", "label": "720p HD"}
+}
+
 # ASS colours are &HBBGGRR. `size` is the ASS font size (line height); _Font turns it into real pixels.
 STYLES = {
     "bounce": {"label": "Bounce", "font": "Poppins ExtraBold", "size": 132, "base": "FFFFFF", "active": "00F0FF",
@@ -134,39 +140,45 @@ def _groups(words, per):
     return out
 
 
-def geometry(src_w, src_h, layout):
-    """Where the video sits in the 1080x1920 frame, and where hook and captions go."""
+def geometry(src_w, src_h, layout, out_w=W, out_h=H):
+    """Where the video sits in the frame, and where hook and captions go."""
+    scale_y = out_h / H
     if src_h >= src_w and layout != "crop":
         layout = "crop"  # already vertical or square: nothing to gain from a blurred fill
     if layout == "blur":
-        fg_h = min(H, int(round(W * src_h / src_w / 2)) * 2)
+        fg_h = min(out_h, int(round(out_w * src_h / src_w / 2)) * 2)
     elif layout == "zoom":
-        fg_h = 1000
+        fg_h = int(1000 * scale_y)
     else:
-        fg_h = H
-    top = (H - fg_h) // 2
+        fg_h = out_h
+    top = (out_h - fg_h) // 2
     if layout in ("crop", "gameplay"):
-        return layout, fg_h, 300, 1380
-    return layout, fg_h, max(230, top - 190), min(1640, top + fg_h + 180)
+        return layout, fg_h, int(300 * scale_y), int(1380 * scale_y)
+    return layout, fg_h, max(int(230 * scale_y), top - int(190 * scale_y)), min(int(1640 * scale_y), top + fg_h + int(180 * scale_y))
 
 
-def _hook_events(hook, dur, y):
+def _hook_events(hook, dur, y, out_w=W):
     """The heading: dark text in a white rounded box that fits it, on one line or two balanced ones."""
-    f, size = _Font.get(HOOK["font"]), HOOK["size"]
+    scale = out_w / W
+    f, size = _Font.get(HOOK["font"]), int(HOOK["size"] * scale)
+    max_w = int(HOOK["max_w"] * scale)
+    pad_x = int(HOOK["pad_x"] * scale)
+    pad_y = int(HOOK["pad_y"] * scale)
+    radius = int(HOOK["radius"] * scale)
     words = hook.split()
     if not words:
         return []
     lines = [" ".join(words)]
-    if f.width(lines[0], size) > HOOK["max_w"] and len(words) > 1:      # two lines, split where they come out most even
+    if f.width(lines[0], size) > max_w and len(words) > 1:      # two lines, split where they come out most even
         cut = min(range(1, len(words)), key=lambda i: max(f.width(" ".join(words[:i]), size), f.width(" ".join(words[i:]), size)))
         lines = [" ".join(words[:cut]), " ".join(words[cut:])]
     widest = max(f.width(l, size) for l in lines)
-    if widest > HOOK["max_w"]:
-        size = max(40, int(size * HOOK["max_w"] / widest))
+    if widest > max_w:
+        size = max(int(40 * scale), int(size * max_w / widest))
         widest = max(f.width(l, size) for l in lines)
     line_h = f.em(size) * 1.16
-    bw, bh = widest + 2 * HOOK["pad_x"], line_h * len(lines) + 2 * HOOK["pad_y"]
-    x0, y0, r = (W - bw) / 2, y - bh / 2, min(HOOK["radius"], bh / 2)
+    bw, bh = widest + 2 * pad_x, line_h * len(lines) + 2 * pad_y
+    x0, y0, r = (out_w - bw) / 2, y - bh / 2, min(radius, bh / 2)
     x1, y1 = x0 + bw, y0 + bh
     n = lambda v: f"{v:.0f}"                                                         # noqa: E731
     box = (f"m {n(x0 + r)} {n(y0)} l {n(x1 - r)} {n(y0)} b {n(x1)} {n(y0)} {n(x1)} {n(y0)} {n(x1)} {n(y0 + r)} "
@@ -177,33 +189,38 @@ def _hook_events(hook, dur, y):
     ev = [f"Dialogue: 3,{span},Hook,,0,0,0,,{{\\an7\\pos(0,0)\\fad(160,0)\\c&H{HOOK['box']}&\\p1}}{box}{{\\p0}}"]
     for i, line in enumerate(lines):
         cy = y - line_h * (len(lines) - 1) / 2 + i * line_h - f.cap_shift(size)
-        ev.append(f"Dialogue: 4,{span},Hook,,0,0,0,,{{\\an5\\pos({W // 2},{cy:.0f})\\fad(160,0)\\fs{size}}}{line}")
+        ev.append(f"Dialogue: 4,{span},Hook,,0,0,0,,{{\\an5\\pos({out_w // 2},{cy:.0f})\\fad(160,0)\\fs{size}}}{line}")
     return ev
 
 
-def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, auto_emoji=False) -> str:
+def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, auto_emoji=False, out_w=W, out_h=H) -> str:
     st = STYLES.get(style_name, STYLES["bounce"])
+    scale = out_w / W
+    font_size = int(round(st["size"] * scale))
+    outline = max(1, int(round(st["outline"] * scale)))
+    shadow = int(round(2 * scale)) if style_name == "cinema" else 0
+    hook_font_size = int(round(HOOK["size"] * scale))
+    cap_max_w = int(round(CAP_MAX_W * scale))
     words = [dict(w, s=w["s"] - CAPTION_LEAD, e=w["e"] - CAPTION_LEAD) for w in words]
     strong = {_key(h) for h in highlight if _key(h)}
     back_style = 3 if style_name == "boxed" else 1
-    shadow = 2 if style_name == "cinema" else 0
     head = f"""[Script Info]
 ScriptType: v4.00+
-PlayResX: {W}
-PlayResY: {H}
+PlayResX: {out_w}
+PlayResY: {out_h}
 WrapStyle: 2
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Cap,{st['font']},{st['size']},&H00{st['base']},&H00{st['base']},&H88000000,&HCC111111,0,0,0,0,100,100,0,0,{back_style},{st['outline']},{shadow},5,0,0,0,1
-Style: Hook,{HOOK['font']},{HOOK['size']},&H00{HOOK['ink']},&H00{HOOK['ink']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
+Style: Cap,{st['font']},{font_size},&H00{st['base']},&H00{st['base']},&H88000000,&HCC111111,0,0,0,0,100,100,0,0,{back_style},{outline},{shadow},5,0,0,0,1
+Style: Hook,{HOOK['font']},{hook_font_size},&H00{HOOK['ink']},&H00{HOOK['ink']},&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     dur = end - start
-    ev = _hook_events(_clean(hook), dur, hook_y)
+    ev = _hook_events(_clean(hook), dur, hook_y, out_w=out_w)
     f = _Font.get(st["font"])
     inside = [dict(w, w=_clean(w["w"])) for w in words if w["s"] >= start - 0.05 and w["s"] < end]
     inside = sorted((w for w in inside if w["w"]), key=lambda w: w["s"])
@@ -223,39 +240,36 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 t = f"{t} {EMOJI_WORDS[k]}"
             texts.append(t.upper() if st["upper"] else t)
         if not all(roman.drawable(t) for t in texts):
-            # A script the caption font cannot draw (Japanese, Thai, Chinese...): its words cannot be measured, so
-            # they are not placed one by one. The line is drawn whole and centred, in a font the system has for it.
             line = " ".join(texts)
-            fs = max(44, min(int(st["size"] * 0.7), int(1500 / max(1, len(line)) * 1.6)))
-            ev.append(f"Dialogue: 1,{_ts(g_start)},{_ts(g_end)},Cap,,60,60,0,,{{\\an5\\pos({W // 2},{cap_y:.0f})\\q0\\fs{fs}}}{line}")
+            fs = max(int(44 * scale), min(int(font_size * 0.7), int(1500 * scale / max(1, len(line)) * 1.6)))
+            ev.append(f"Dialogue: 1,{_ts(g_start)},{_ts(g_end)},Cap,,60,60,0,,{{\\an5\\pos({out_w // 2},{cap_y:.0f})\\q0\\fs{fs}}}{line}")
             continue
-        size = st["size"]
-        gap = f.width("n n", size) - 2 * f.width("n", size) + (2 * st["outline"] + 6) * size / st["size"]   # a space, plus room for both outlines
+        size = font_size
+        gap = f.width("n n", size) - 2 * f.width("n", size) + (2 * outline + 6) * size / font_size
         total = sum(f.width(t, size) for t in texts) + gap * (len(texts) - 1)
-        if total > CAP_MAX_W:                                  # a long phrase: shrink it to fit, never run off the frame
-            size = max(36, int(size * CAP_MAX_W / total))
-            gap = f.width("n n", size) - 2 * f.width("n", size) + (2 * st["outline"] + 6) * size / st["size"]   # a space, plus room for both outlines
+        if total > cap_max_w:
+            size = max(int(36 * scale), int(size * cap_max_w / total))
+            gap = f.width("n n", size) - 2 * f.width("n", size) + (2 * outline + 6) * size / font_size
             total = sum(f.width(t, size) for t in texts) + gap * (len(texts) - 1)
         cy = cap_y - f.cap_shift(size)
-        x = (W - total) / 2
-        p = st["pop"]
+        x = (out_w - total) / 2
         for i, (w, t) in enumerate(zip(g, texts)):
             wd = f.width(t, size)
-            p = max(104, min(st["pop"], 100 + int(2200 / max(wd, 1))))   # long words grow less, so they never touch their neighbours
+            p = max(104, min(st["pop"], 100 + int(2200 * scale / max(wd, 1))))
             pos = f"\\an5\\pos({x + wd / 2:.0f},{cy:.0f})\\fs{size}"
             x += wd + gap
             a = max(g_start, w["s"] - start)
             b = (g[i + 1]["s"] - start) if i + 1 < len(g) else g_end
             base = st["strong"] if _key(w["w"]) in strong else st["base"]
-            if a - g_start >= 0.02:                                                   # waiting to be said
+            if a - g_start >= 0.02:
                 ev.append(f"Dialogue: 1,{_ts(g_start)},{_ts(a)},Cap,,0,0,0,,{{{pos}\\c&H{base}&}}{t}")
-            if b - a >= 0.02:                                                         # being said: colour and a quick pop, in front
-                active = st["active"]
+            active = st["active"]
+            if b - a >= 0.02:
                 ev.append(f"Dialogue: 2,{_ts(a)},{_ts(b)},Cap,,0,0,0,,{{{pos}\\c&H{active}&\\fscx94\\fscy94"
-                          f"\\t(0,90,\\fscx{p}\\fscy{p})\\t(90,200,\\fscx{p - 5}\\fscy{p - 5})}}{t}")
-            if g_end - b >= 0.02:                                                     # said
+                          f"\\t(0,70,\\fscx{p}\\fscy{p})\\t(70,170,\\fscx100\\fscy100)}}{t}")
+            if g_end - b >= 0.02:
                 ev.append(f"Dialogue: 1,{_ts(b)},{_ts(g_end)},Cap,,0,0,0,,{{{pos}\\c&H{base}&\\fscx{p - 5}\\fscy{p - 5}"
-                          f"\\t(0,90,\\fscx100\\fscy100)}}{t}")
+                          f"\\t(0,70,\\fscx100\\fscy100)}}{t}")
     return head + "\n".join(ev) + "\n"
 
 
@@ -263,31 +277,36 @@ PIP_W = 380            # how wide the facecam is in the 1080-wide frame
 PIP_MARGIN = 26
 
 
-def _filter(layout, fg_h, facecam=None):
+def _filter(layout, fg_h, facecam=None, out_w=W, out_h=H):
+    pip_w = int(round(PIP_W * out_w / W))
+    pip_margin = int(round(PIP_MARGIN * out_w / W))
     if layout == "gameplay" and facecam:
         # The game fills the screen, and the webcam sits in the top corner of it, so a viewer sees
         # the play and the face at the same time.
         fx, fy, fw, fh = (int(v) for v in facecam)
         if fw > 8 and fh > 8:
-            pip_h = max(2, int(round(PIP_W * fh / fw)))
+            pip_h = max(2, int(round(pip_w * fh / fw)))
             return (f"[0:v]fps={config.OUT_FPS},split=2[base][fc];"
-                    f"[base]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[b];"
-                    f"[fc]crop={fw}:{fh}:{fx}:{fy},scale={PIP_W}:{pip_h},setsar=1[p];"
-                    f"[b][p]overlay={W - PIP_W - PIP_MARGIN}:{PIP_MARGIN}[v0];")
+                    f"[base]scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},setsar=1[b];"
+                    f"[fc]crop={fw}:{fh}:{fx}:{fy},scale={pip_w}:{pip_h},setsar=1[p];"
+                    f"[b][p]overlay={out_w - pip_w - pip_margin}:{pip_margin}[v0];")
     if layout == "crop" or (layout == "gameplay" and not facecam):
-        return f"[0:v]fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[v0];"
+        return f"[0:v]fps={config.OUT_FPS},scale={out_w}:{out_h}:force_original_aspect_ratio=increase,crop={out_w}:{out_h},setsar=1[v0];"
+    blur_w, blur_h = max(2, int(round(270 * out_w / W / 2)) * 2), max(2, int(round(480 * out_h / H / 2)) * 2)
     return (f"[0:v]fps={config.OUT_FPS},split=2[a][b];"
-            f"[a]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=6:2,"
-            f"scale={W}:{H},eq=brightness=-0.14:saturation=1.15[bg];"
-            f"[b]scale={W}:{fg_h}:force_original_aspect_ratio=increase,crop={W}:{fg_h}[fg];"
-            f"[bg][fg]overlay=0:(H-h)/2,setsar=1[v0];")
+            f"[a]scale={blur_w}:{blur_h}:force_original_aspect_ratio=increase,crop={blur_w}:{blur_h},boxblur=6:2,"
+            f"scale={out_w}:{out_h},eq=brightness=-0.14:saturation=1.15[bg];"
+            f"[b]scale={out_w}:{fg_h}:force_original_aspect_ratio=increase,crop={out_w}:{fg_h}[fg];"
+            f"[bg][fg]overlay=0:({out_h}-h)/2,setsar=1[v0];")
 
 
-def _hook_y(layout, hook_y, facecam=None):
+def _hook_y(layout, hook_y, facecam=None, out_w=W):
     """Where the heading goes. In the gameplay layout the webcam sits in the top corner, so a heading
     across the top would run under it: it goes just below the picture instead."""
     if layout == "gameplay" and facecam and len(facecam) == 4 and facecam[2] > 8:
-        return PIP_MARGIN + int(round(PIP_W * facecam[3] / facecam[2])) + 32
+        pip_w = int(round(PIP_W * out_w / W))
+        pip_margin = int(round(PIP_MARGIN * out_w / W))
+        return pip_margin + int(round(pip_w * facecam[3] / facecam[2])) + int(round(32 * out_w / W))
     return hook_y
 
 
@@ -304,13 +323,18 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     """Writes <name>.mp4, <name>.jpg and <name>.ass into out_dir. Returns file names."""
     out_dir.mkdir(parents=True, exist_ok=True)
     start, end = clip["start"], clip["end"]
-    layout, fg_h, hook_y, cap_y = geometry(src_w, src_h, clip.get("layout", "blur"))
+    res_key = str(clip.get("resolution") or "1080p").lower()
+    res_cfg = RESOLUTIONS.get(res_key, RESOLUTIONS["1080p"])
+    out_w, out_h = res_cfg["w"], res_cfg["h"]
+    bitrate, crf = res_cfg["bitrate"], res_cfg["crf"]
+    layout, fg_h, hook_y, cap_y = geometry(src_w, src_h, clip.get("layout", "blur"), out_w=out_w, out_h=out_h)
     face = clip.get("facecam")
     if layout == "gameplay" and not (face and len(face) == 4):
         layout = "crop"     # no webcam found: the game fills the screen, which is still the right shape
-    hook_y = _hook_y(layout, hook_y, face)
+    hook_y = _hook_y(layout, hook_y, face, out_w=out_w)
     ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
-                    clip.get("highlight_words", []), hook_y, cap_y, auto_emoji=clip.get("auto_emoji", False))
+                    clip.get("highlight_words", []), hook_y, cap_y, auto_emoji=clip.get("auto_emoji", False),
+                    out_w=out_w, out_h=out_h)
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
     # folders easily reaches. Inside the work folder every name is short and relative (a drive colon would also
@@ -327,7 +351,8 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
                           overlay_x=clip.get("overlay_x", 0.78), overlay_y=clip.get("overlay_y", 0.82),
                           effect=clip.get("effect", "none"), animation=clip.get("animation", "none"),
                           ducking=clip.get("ducking", True), fade_in=clip.get("fade_in", 0.35),
-                          fade_out=clip.get("fade_out", 0.45))
+                          fade_out=clip.get("fade_out", 0.45), out_w=out_w, out_h=out_h,
+                          bitrate=bitrate, crf=crf, res_key=res_key)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -335,14 +360,15 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
 def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None,
                music_path=None, source_volume=1.0, music_volume=0.25, preview_size=None, overlay_path=None,
                overlay_scale=0.24, overlay_x=0.78, overlay_y=0.82, effect="none", animation="none",
-               ducking=True, fade_in=0.35, fade_out=0.45) -> dict:
+               ducking=True, fade_in=0.35, fade_out=0.45, out_w=W, out_h=H, bitrate="6M", crf="21",
+               res_key="1080p") -> dict:
     global _qsv_ok, _nvenc_ok, _vt_ok, _amf_ok, _mf_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
     for f in config.FONTS_DIR.glob("*.ttf"):
         shutil.copyfile(f, work / "f" / f.name)
     duration = end - start
-    fc = _filter(layout, fg_h, face) + f"[v0]ass={name}.ass:fontsdir=f[vbase]"
+    fc = _filter(layout, fg_h, face, out_w=out_w, out_h=out_h) + f"[v0]ass={name}.ass:fontsdir=f[vbase]"
     vmap = "[vbase]"
     if effect == "warm":
         fc += ";[vbase]eq=saturation=1.2:contrast=1.04:gamma=1.02[vfx]"
@@ -359,13 +385,13 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     if overlay_path and Path(overlay_path).is_file():
         overlay_path = Path(overlay_path)
         shutil.copyfile(overlay_path, work / ("overlay" + overlay_path.suffix.lower()))
-        ow, oh = max(2, int(W * max(.08, min(.5, float(overlay_scale))))), -1
+        ow, oh = max(2, int(out_w * max(.08, min(.5, float(overlay_scale))))), -1
         ox = f"(W-w)*{max(0.0, min(1.0, float(overlay_x))):.3f}"
         oy = f"(H-h)*{max(0.0, min(1.0, float(overlay_y))):.3f}"
         fc += f";[1:v]scale={ow}:{oh}:force_original_aspect_ratio=decrease[ov];{vmap}null[basev];[basev][ov]overlay={ox}:{oy}:shortest=1:eof_action=repeat[vout]"
         vmap = "[vout]"
     if animation == "pulse":
-        fc += f";{vmap}zoompan=z='min(1.04\\,1.015+0.015*sin(2*PI*on/36))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps={config.OUT_FPS}[vanim]"
+        fc += f";{vmap}zoompan=z='min(1.04\\,1.015+0.015*sin(2*PI*on/36))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={out_w}x{out_h}:fps={config.OUT_FPS}[vanim]"
         vmap = "[vanim]"
     if preview_size:
         pw, ph = (int(v) for v in preview_size)
@@ -404,16 +430,16 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
         encoders.append(("preview", ["yuv420p", "-c:v", "libx264", "-crf", "30", "-preset", "ultrafast"]))
     else:
         if _nvenc_ok is not False:
-            encoders.append(("nvenc", ["yuv420p", "-c:v", "h264_nvenc", "-preset", "p5", "-tune", "hq", "-b:v", "6M"]))
+            encoders.append(("nvenc", ["yuv420p", "-c:v", "h264_nvenc", "-preset", "p5", "-tune", "hq", "-b:v", bitrate]))
         if _vt_ok is not False and sys.platform == "darwin":
-            encoders.append(("videotoolbox", ["yuv420p", "-c:v", "h264_videotoolbox", "-b:v", "6M"]))
+            encoders.append(("videotoolbox", ["yuv420p", "-c:v", "h264_videotoolbox", "-b:v", bitrate]))
         if _qsv_ok is not False:
-            encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "23", "-preset", "fast"]))
+            encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", crf, "-preset", "fast"]))
         if _amf_ok is not False:
-            encoders.append(("amf", ["yuv420p", "-c:v", "h264_amf", "-b:v", "6M", "-quality", "speed"]))
+            encoders.append(("amf", ["yuv420p", "-c:v", "h264_amf", "-b:v", bitrate, "-quality", "speed"]))
         if _mf_ok is not False and sys.platform == "win32":
-            encoders.append(("mf", ["yuv420p", "-c:v", "h264_mf", "-b:v", "6M"]))
-    encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"]))
+            encoders.append(("mf", ["yuv420p", "-c:v", "h264_mf", "-b:v", bitrate]))
+    encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", crf, "-preset", "veryfast"]))
     err = None
     for label, enc in encoders:
         p = subprocess.run(base + enc + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
@@ -448,4 +474,4 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
          "-q:v", "3", f"{name}.jpg"], cwd=work)
     for ext in ("mp4", "jpg", "ass"):
         shutil.move(str(work / f"{name}.{ext}"), str(out_dir / f"{name}.{ext}"))
-    return {"file": f"{name}.mp4", "cover": f"{name}.jpg", "layout": layout}
+    return {"file": f"{name}.mp4", "cover": f"{name}.jpg", "layout": layout, "resolution": res_key, "width": out_w, "height": out_h}
