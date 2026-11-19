@@ -1,8 +1,8 @@
 """Sending account emails (verify your address, reset your password) over SMTP.
 
 Works with any provider that offers SMTP: Resend, Postmark, Brevo, Amazon SES, Google Workspace and so on. Set
-PEAKCUT_SMTP_HOST, PEAKCUT_SMTP_PORT (587), PEAKCUT_SMTP_USER, PEAKCUT_SMTP_PASSWORD_FILE (a file holding the
-password or API key) and PEAKCUT_MAIL_FROM ("Clipsart <hello@yourdomain.com>"). Without them nothing is sent and the
+CLIPSART_SMTP_HOST, CLIPSART_SMTP_PORT (587), CLIPSART_SMTP_USER, CLIPSART_SMTP_PASSWORD_FILE (a file holding the
+password or API key) and CLIPSART_MAIL_FROM ("Clipsart <hello@yourdomain.com>"). Without them nothing is sent and the
 link is written to the server log instead, which is enough for running Clipsart on your own machine."""
 import html
 import logging

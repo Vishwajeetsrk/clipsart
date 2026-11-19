@@ -24,7 +24,7 @@ are there, and only then offer to delete the old folder. Never delete anything w
 - Tests: `python tests/run.py`. It starts a throwaway copy on a spare port with an empty data folder. Run it
   before and after any change to `studio/`. No keys needed.
 - To try a risky change by hand without touching real data:
-  `PEAKCUT_DATA=<temp folder> PEAKCUT_PORT=8766 python -m studio.server`.
+  `CLIPSART_DATA=<temp folder> CLIPSART_PORT=8766 python -m studio.server`.
 
 ## Where things are
 
@@ -47,7 +47,7 @@ are there, and only then offer to delete the old folder. Never delete anything w
 ## Rules worth knowing
 
 - **Sign-in is off by default** (`config.ACCOUNTS`): every request then belongs to one built-in owner
-  (`auth.local_user()`). With `PEAKCUT_ACCOUNTS=1` it is a normal multi-user site. Both paths are tested.
+  (`auth.local_user()`). With `CLIPSART_ACCOUNTS=1` it is a normal multi-user site. Both paths are tested.
 - **Who is asking** always comes from the session (`ctx.uid()`), never from the request body. Background threads
   set it themselves with `ctx.as_user(...)`.
 - **Anything that changes what a user sees must call `ctx.bump()`**. The page polls `/api/sync`, which answers

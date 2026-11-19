@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="pc-thumbnail-")
-os.environ["PEAKCUT_ACCOUNTS"] = "0"
+os.environ["CLIPSART_DATA"] = tempfile.mkdtemp(prefix="pc-thumbnail-")
+os.environ["CLIPSART_ACCOUNTS"] = "0"
 sys.path.insert(0, ".")
 
 from PIL import Image  # noqa: E402
@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from studio import auth, ctx, db, jobs, render, server  # noqa: E402
 
 db.init()
-root = Path(os.environ["PEAKCUT_DATA"])
+root = Path(os.environ["CLIPSART_DATA"])
 source = root / "source.mp4"
 subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25",
                 "-f", "lavfi", "-i", "sine=frequency=220:duration=3", "-t", "3", "-c:v", "libx264",

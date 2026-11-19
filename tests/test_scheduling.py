@@ -7,9 +7,9 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="pc-schedule-")
+os.environ["CLIPSART_DATA"] = tempfile.mkdtemp(prefix="pc-schedule-")
 os.environ["DATABASE_URL"] = ""
-os.environ["PEAKCUT_ACCOUNTS"] = "1"
+os.environ["CLIPSART_ACCOUNTS"] = "1"
 sys.path.insert(0, ".")
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -67,7 +67,7 @@ with ctx.as_user(u.id):
     scheduled = next(p for p in posting._posts if p.get("job") == jobs_to_schedule[0]["id"])
     check("stores epoch and timezone on the scheduled post",
           abs(scheduled["due_at"] - local_time.timestamp()) < 1 and scheduled["scheduled_timezone"] == "UTC")
-    music_fixture = Path(os.environ["PEAKCUT_DATA"]) / "test-music.wav"
+    music_fixture = Path(os.environ["CLIPSART_DATA"]) / "test-music.wav"
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=5",
                     "-ar", "44100", "-ac", "1", str(music_fixture)], check=True, capture_output=True)
     music_bytes = music_fixture.read_bytes()
@@ -94,5 +94,5 @@ with ctx.as_user(u.id):
 
 import shutil  # noqa: E402
 db.engine.dispose()
-shutil.rmtree(os.environ["PEAKCUT_DATA"], ignore_errors=True)
+shutil.rmtree(os.environ["CLIPSART_DATA"], ignore_errors=True)
 sys.exit(1 if fails else 0)

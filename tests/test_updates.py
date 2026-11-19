@@ -2,8 +2,8 @@
 so nothing leaves this machine), and only the owner is told."""
 import json, os, sys, tempfile
 from pathlib import Path
-os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="pc-upd-")
-os.environ.update(PEAKCUT_UPDATE_CHECK="1", DATABASE_URL="", PEAKCUT_ACCOUNTS="0", PEAKCUT_PUBLIC_URL="http://127.0.0.1:8765", PEAKCUT_AI_KEY="", PEAKCUT_AI_MODELS="")
+os.environ["CLIPSART_DATA"] = tempfile.mkdtemp(prefix="pc-upd-")
+os.environ.update(CLIPSART_UPDATE_CHECK="1", DATABASE_URL="", CLIPSART_ACCOUNTS="0", CLIPSART_PUBLIC_URL="http://127.0.0.1:8765", CLIPSART_AI_KEY="", CLIPSART_AI_MODELS="")
 sys.path.insert(0, ".")
 from fastapi.testclient import TestClient
 from studio import config, db, server, updates
@@ -99,8 +99,8 @@ c = TestClient(server.app, base_url="http://127.0.0.1:8765")
 st = c.get("/api/status").json()
 check("the owner's dashboard gets the notice", (st["update"] or {}).get("behind"), 2)
 updates.ON = False
-check("PEAKCUT_UPDATE_CHECK=0: never asks, never tells", (updates.check(force=True), c.get("/api/status").json()["update"]), (None, None))
+check("CLIPSART_UPDATE_CHECK=0: never asks, never tells", (updates.check(force=True), c.get("/api/status").json()["update"]), (None, None))
 
 print("ALL PASSED" if not fails else f"{len(fails)} failed")
-import shutil; db.engine.dispose(); shutil.rmtree(os.environ["PEAKCUT_DATA"], ignore_errors=True); shutil.rmtree(fake, ignore_errors=True)
+import shutil; db.engine.dispose(); shutil.rmtree(os.environ["CLIPSART_DATA"], ignore_errors=True); shutil.rmtree(fake, ignore_errors=True)
 sys.exit(1 if fails else 0)

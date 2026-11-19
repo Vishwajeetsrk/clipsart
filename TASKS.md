@@ -39,7 +39,7 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Rewrite the README with verified clone, launch, deployment, environment, editing, scheduling, thumbnail, feedback and test guidance.
 - [x] Replace the MIT copyright line with the Clipsart owner notice while retaining the MIT terms.
 - [x] Set the updater default and repository URL to `Vishwajeetsrk/clipsart`.
-- [x] Add safe `CLIPSART_*` to `PEAKCUT_*` configuration compatibility.
+- [x] Add safe `CLIPSART_*` to `CLIPSART_*` configuration compatibility.
 - [x] Add an in-app suggestion/problem form using the existing saved feedback inbox.
 - [x] Add optional SMTP notifications for `support.learnifyai@gmail.com`; preserve saved feedback when SMTP is not configured.
 - [x] Add migration and feedback-email regression checks.

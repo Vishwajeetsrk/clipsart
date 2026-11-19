@@ -148,7 +148,7 @@ A launch-night roster of game streamers uses:
 tighter bar means fewer clips.
 
 One setting is not in that list because it is an environment variable:
-**`PEAKCUT_LIVE_AI_TIMEOUT`** (45 seconds by default) is how long one AI answer
+**`CLIPSART_LIVE_AI_TIMEOUT`** (45 seconds by default) is how long one AI answer
 may take on a live stream. It is short on purpose. The AI is asked on its own
 thread, so while a model is thinking the speech is still being written and
 "clip that" still works — a slow answer costs one check, not the stream.

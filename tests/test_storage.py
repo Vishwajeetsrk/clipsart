@@ -4,8 +4,8 @@ import json, os, subprocess, sys, tempfile
 from pathlib import Path
 base = Path(tempfile.mkdtemp(prefix="pc-stor-"))
 old, new, pointer = base / "old-data", base / "bigger drive" / "Clipsart", base / "storage.json"
-os.environ.pop("PEAKCUT_DATA", None); os.environ.pop("PEAKCUT_MODELS", None)
-os.environ.update(DATABASE_URL="", PEAKCUT_STORAGE_FILE=str(pointer), PEAKCUT_ACCOUNTS="0", PEAKCUT_PUBLIC_URL="http://127.0.0.1:8765")
+os.environ.pop("CLIPSART_DATA", None); os.environ.pop("CLIPSART_MODELS", None)
+os.environ.update(DATABASE_URL="", CLIPSART_STORAGE_FILE=str(pointer), CLIPSART_ACCOUNTS="0", CLIPSART_PUBLIC_URL="http://127.0.0.1:8765")
 pointer.write_text(json.dumps({"path": str(old)}))
 sys.path.insert(0, ".")
 from fastapi.testclient import TestClient
@@ -60,15 +60,15 @@ code = "from studio import config; print('USING', config.DATA_DIR)"
 out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 check("the next start uses the new folder", f"USING {new.resolve()}" in out.stdout)
 check("the clips were moved there", (new / "users" / "u_local" / "jobs" / "job1" / "clip01.mp4").read_bytes() == b"v" * 5000)
-check("the database went with them", (new / "peakcut.db").is_file())
+check("the database went with them", (new / "clipsart.db").is_file())
 check("nothing is left in the old place", not old.exists() or not any(old.iterdir()))
 check("the move is done once", json.loads(pointer.read_text()), {"path": str(new.resolve())})
 out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 check("a later start changes nothing", ("Moving" in out.stdout, f"USING {new.resolve()}" in out.stdout), (False, True))
 
-# ---- PEAKCUT_DATA in .env wins, and then the dashboard cannot change it
+# ---- CLIPSART_DATA in .env wins, and then the dashboard cannot change it
 out = subprocess.run([sys.executable, "-c", "from studio import config, storage\ntry:\n    storage.change(r'" + str(base / "x") + "')\nexcept ValueError as e:\n    print(config.DATA_FROM, '|', e)"],
-                     capture_output=True, text=True, env={**env, "PEAKCUT_DATA": str(base / "from-env")}, encoding="utf-8", errors="replace")
+                     capture_output=True, text=True, env={**env, "CLIPSART_DATA": str(base / "from-env")}, encoding="utf-8", errors="replace")
 check("a folder set in .env is left to .env", out.stdout.startswith("env |") and ".env" in out.stdout)
 
 print("ALL PASSED" if not fails else f"{len(fails)} failed")

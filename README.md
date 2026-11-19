@@ -45,34 +45,34 @@ Open <http://127.0.0.1:8765>, go to **Settings → AI**, and save your model key
 
 ## Configure AI
 
-The dashboard is the easiest place to set an AI provider, key and model. Settings can also go in a private `.env` file, using the `PEAKCUT_` prefix documented in [`.env.example`](.env.example). Existing configuration, databases and user media are preserved when updating.
+The dashboard is the easiest place to set an AI provider, key and model. Settings can also go in a private `.env` file, using the `CLIPSART_` prefix documented in [`.env.example`](.env.example). Existing configuration, databases and user media are preserved when updating.
 
 ```ini
-PEAKCUT_AI_PROVIDER=gemini
-PEAKCUT_AI_MODELS=gemini-2.5-flash
-PEAKCUT_AI_KEY=your-key-here
+CLIPSART_AI_PROVIDER=gemini
+CLIPSART_AI_MODELS=gemini-2.5-flash
+CLIPSART_AI_KEY=your-key-here
 ```
 
 Get a key from [Google AI Studio](https://aistudio.google.com/apikey), [OpenAI](https://platform.openai.com/api-keys), [xAI](https://console.x.ai), [Groq](https://console.groq.com/keys), [OpenRouter](https://openrouter.ai/keys), or [Anthropic](https://console.anthropic.com). Ollama can run a local model. The provider bills you directly; Clipsart does not add a fee. Speech transcription runs on your computer.
 
 ## Suggestion and report email
 
-The app always stores reports and ideas for signed-in users in Clipsart's admin inbox. Email delivery is optional. To send a notification to `support.learnifyai@gmail.com`, configure these `PEAKCUT_` settings with an SMTP provider. Keep credentials private in `.env` and do not commit that file.
+The app always stores reports and ideas for signed-in users in Clipsart's admin inbox. Email delivery is optional. To send a notification to `support.learnifyai@gmail.com`, configure these `CLIPSART_` settings with an SMTP provider. Keep credentials private in `.env` and do not commit that file.
 
 ```ini
-PEAKCUT_CONTACT_EMAIL=support.learnifyai@gmail.com
-PEAKCUT_SMTP_HOST=
-PEAKCUT_SMTP_PORT=587
-PEAKCUT_SMTP_USER=
-PEAKCUT_SMTP_PASSWORD=
-PEAKCUT_MAIL_FROM=Clipsart <hello@your-domain.example>
+CLIPSART_CONTACT_EMAIL=support.learnifyai@gmail.com
+CLIPSART_SMTP_HOST=
+CLIPSART_SMTP_PORT=587
+CLIPSART_SMTP_USER=
+CLIPSART_SMTP_PASSWORD=
+CLIPSART_MAIL_FROM=Clipsart <hello@your-domain.example>
 ```
 
 The sender must be an address your provider permits. When SMTP is not configured or sending fails, users can still see that the report was saved; the app does not claim the message was emailed.
 
 ## Configure a public server
 
-For a server, set `PEAKCUT_ACCOUNTS=1`, configure an HTTPS domain, and follow [DEPLOY.md](DEPLOY.md) for Docker, PostgreSQL and Caddy. Register OAuth callback URLs with the publishing platforms you enable. Clipsart never asks for those platforms' passwords. Account emails, optional Google sign-in, Instagram and TikTok app credentials, storage and upload limits are documented in `.env.example`.
+For a server, set `CLIPSART_ACCOUNTS=1`, configure an HTTPS domain, and follow [DEPLOY.md](DEPLOY.md) for Docker, PostgreSQL and Caddy. Register OAuth callback URLs with the publishing platforms you enable. Clipsart never asks for those platforms' passwords. Account emails, optional Google sign-in, Instagram and TikTok app credentials, storage and upload limits are documented in `.env.example`.
 
 Use `python -m studio.admin grant you@example.com` on the server to grant an account administrator access. The admin page is at `/admin`. User content and settings remain in the data folder; preserve it when upgrading or backing up.
 

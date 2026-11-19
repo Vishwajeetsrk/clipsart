@@ -110,7 +110,7 @@ def change(path: str, move: bool = True) -> dict:
     """Choose a new folder. It is checked now (it can be made, written to, and has room) and used from the next
     start; with `move`, what is in the current folder is moved there then."""
     if config.DATA_FROM == "env":
-        raise ValueError("The folder is set with PEAKCUT_DATA in the .env file. Change it there, or remove that line to choose it here.")
+        raise ValueError("The folder is set with CLIPSART_DATA in the .env file. Change it there, or remove that line to choose it here.")
     raw = str(path or "").strip().strip('"')
     if not raw:
         raise ValueError("Choose a folder.")

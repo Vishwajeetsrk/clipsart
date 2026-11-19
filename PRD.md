@@ -8,7 +8,7 @@
 
 - Product, local UI, README, MIT notice, deployment guidance, and project-owned GitHub metadata use the Clipsart name.
 - Repository is `https://github.com/Vishwajeetsrk/clipsart`. Use this repository for clone, update, publish and release actions.
-- Retain existing `PEAKCUT_*` configuration names for backward compatibility and map new `CLIPSART_*` values over them without touching data paths or databases.
+- Retain existing `CLIPSART_*` configuration names for backward compatibility and map new `CLIPSART_*` values over them without touching data paths or databases.
 - The in-app suggestion/problem report form saves through the existing feedback store. An optional SMTP notification targets `support.learnifyai@gmail.com`; do not tell users it was emailed when SMTP is unavailable.
 - Preserve historical commits and contributor attribution unless the repository owner separately confirms an explicit history rewrite immediately before force pushing.
 

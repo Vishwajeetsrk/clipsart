@@ -9,15 +9,15 @@ from unittest.mock import patch
 
 from PIL import Image
 
-os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="pc-render-audio-")
-os.environ["PEAKCUT_ACCOUNTS"] = "0"
+os.environ["CLIPSART_DATA"] = tempfile.mkdtemp(prefix="pc-render-audio-")
+os.environ["CLIPSART_ACCOUNTS"] = "0"
 sys.path.insert(0, ".")
 
 from fastapi.testclient import TestClient  # noqa: E402
 from studio import ctx, db, jobs, render, server  # noqa: E402
 db.init()
 
-root = Path(os.environ["PEAKCUT_DATA"])
+root = Path(os.environ["CLIPSART_DATA"])
 source, music, output = root / "source.mp4", root / "music.wav", root / "clips"
 subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=640x360:rate=25",
                 "-f", "lavfi", "-i", "sine=frequency=220:duration=3", "-t", "3", "-c:v", "libx264",

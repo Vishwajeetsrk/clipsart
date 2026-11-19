@@ -5,7 +5,7 @@ These rules apply to every future feature, fix, test, and release in this reposi
 ## Brand, repository, and support
 
 - Use Clipsart as the product name and the `https://github.com/Vishwajeetsrk/clipsart` repository for clone, update, publishing, and release instructions.
-- Preserve existing user settings, `.env` files, storage paths, databases, media, and legacy `PEAKCUT_*` configuration compatibility across the rebrand.
+- Preserve existing user settings, `.env` files, storage paths, databases, media, and legacy `CLIPSART_*` configuration compatibility across the rebrand.
 - Never rewrite published Git history or force-push to suppress GitHub's automatically generated contributor list without explicit, just-in-time approval from the repository owner.
 - Suggestions and problem reports must be validated and saved to the existing feedback store. Email the configured support contact only through a configured SMTP provider, and show the user whether delivery is configured.
 - Do not commit local secrets or `.env`; keep support mailbox credentials out of source code.

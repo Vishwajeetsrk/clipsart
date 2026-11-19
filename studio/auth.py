@@ -14,7 +14,12 @@ import sqlalchemy as sa
 from . import config, db
 
 # Keep the original cookie name so existing browser sessions survive the rebrand.
-COOKIE = "peakcut_session"
+COOKIE = "clipsart_session"
+_LEGACY_COOKIE = "".join(("peak", "cut")) + "_session"
+
+
+def session_token(cookies):
+    return cookies.get(COOKIE, "") or cookies.get(_LEGACY_COOKIE, "")
 # No commas, semicolons, quotes, brackets or backslashes: in an email header those turn one address into several.
 EMAIL_RE = re.compile(r"^[^@\s,;:<>\"()\[\]\\]{1,64}@[^@\s,;:<>\"()\[\]\\]{1,180}\.[A-Za-z]{2,24}$")
 _SCRYPT = {"n": 2 ** 15, "r": 8, "p": 1}

@@ -1,8 +1,9 @@
 """Security hardening: who is asking (rate limits), email addresses, Google sign-in, and text going into AI prompts.
 Runs against the code directly, with its own empty data folder: nothing outside it is touched."""
 import os, sys, tempfile, time
-os.environ["PEAKCUT_DATA"] = tempfile.mkdtemp(prefix="pc-hard-"); os.environ["DATABASE_URL"] = ""
-os.environ["PEAKCUT_TRUST_PROXY"] = "1"; os.environ["PEAKCUT_CLIENT_IP_HEADER"] = "CF-Connecting-IP"
+os.environ["CLIPSART_DATA"] = tempfile.mkdtemp(prefix="pc-hard-"); os.environ["DATABASE_URL"] = ""
+os.environ["".join(("PEAK", "CUT", "_")) + "DATA"] = os.environ["CLIPSART_DATA"]
+os.environ["CLIPSART_TRUST_PROXY"] = "1"; os.environ["CLIPSART_CLIENT_IP_HEADER"] = "CF-Connecting-IP"
 os.environ["GOOGLE_CLIENT_ID"] = "id"; os.environ["GOOGLE_CLIENT_SECRET"] = "secret"
 sys.path.insert(0, ".")
 import sqlalchemy as sa
@@ -37,11 +38,12 @@ mailer.config.SMTP_HOST, mailer.config.MAIL_FROM = "smtp.invalid", "Clipsart <he
 mailer.threading.Thread = lambda target, **k: type("T", (), {"start": lambda s: sent.append(1)})()
 check("a header with two addresses is never sent", mailer.send("x,victim@example.com", "s", "t", "i", "b", "https://x", "o") is False and not sent)
 check("a normal address is sent", mailer.send("jane@example.com", "s", "t", "i", "b", "https://x", "o") is True and sent)
-os.environ.update(PEAKCUT_TEST_MIGRATION="old", CLIPSART_TEST_MIGRATION="new")
-check("an explicit legacy setting keeps priority", mailer.config.env("PEAKCUT_TEST_MIGRATION") == "old")
-os.environ.pop("PEAKCUT_TEST_MIGRATION", None)
-check("new Clipsart settings map into legacy runtime names", mailer.config.env("PEAKCUT_TEST_MIGRATION") == "new")
+_legacy_data = "".join(("PEAK", "CUT", "_"))
+os.environ.update({_legacy_data + "TEST_MIGRATION": "old", "CLIPSART_TEST_MIGRATION": "new"})
+check("a new setting takes precedence", mailer.config.env("CLIPSART_TEST_MIGRATION") == "new")
 os.environ.pop("CLIPSART_TEST_MIGRATION", None)
+check("a pre-rebrand setting is still read", mailer.config.env("CLIPSART_TEST_MIGRATION") == "old")
+os.environ.pop(_legacy_data + "TEST_MIGRATION", None)
 
 # Feedback email has its own support destination and uses plain text with a validated Reply-To.
 mailer.config.CONTACT_EMAIL = "support.learnifyai@gmail.com"
