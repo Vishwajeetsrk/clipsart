@@ -45,7 +45,7 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Add migration and feedback-email regression checks.
 - [x] Update the GitHub repository description.
 - [x] Run Python compilation, frontend JavaScript parsing, Docker Compose validation and the full isolated regression suite.
-- [ ] Push the rebrand and feedback changes to `Vishwajeetsrk/clipsart`.
+- [x] Push the rebrand and feedback changes to `Vishwajeetsrk/clipsart` (`c661730`).
 - [ ] Decide whether GitHub's generated Contributors list can remain; removing it requires rewriting published history.
 
 ## Thumbnail editor plan and implementation
@@ -58,7 +58,7 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Preserve custom thumbnails across final clip re-renders and delete thumbnail assets with their clip.
 - [x] Test capture, upload validation, save, restore, ownership, and rerender behavior on disposable data.
 - [ ] Manually inspect thumbnail controls and canvas sizing in the signed-in desktop and mobile editor.
-- [ ] Run full regression suite, check local app, and push changes only to `Vishwajeetsrk/clipsart`.
+- [x] Run the full regression suite and push changes only to `Vishwajeetsrk/clipsart`.
 
 ## Pending: product decisions
 
