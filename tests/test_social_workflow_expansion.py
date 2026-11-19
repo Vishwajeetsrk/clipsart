@@ -263,12 +263,23 @@ with ctx.as_user(u.id):
     r_fb = client.post("/api/accounts/direct", json={"platform": "facebook", "name": "Viral Page", "token": "fb_tok_123", "extra_id": "10099"}, headers=origin)
     check("direct connect facebook returns 200", r_fb.status_code, 200)
 
+    # Test 1-Click Fast Connect without token for Instagram and TikTok
+    r_ig_fast = client.post("/api/accounts/direct", json={"platform": "instagram", "name": "@gamingguru"}, headers=origin)
+    check("1-click fast connect instagram returns 200", r_ig_fast.status_code, 200)
+    check("1-click fast connect instagram handle", r_ig_fast.json()["account"]["name"], "@gamingguru")
+
+    r_tt_fast = client.post("/api/accounts/direct", json={"platform": "tiktok", "name": "@tiktokstar"}, headers=origin)
+    check("1-click fast connect tiktok returns 200", r_tt_fast.status_code, 200)
+    check("1-click fast connect tiktok handle", r_tt_fast.json()["account"]["name"], "@tiktokstar")
+
     # Verify all accounts returned with URLs by list_accounts
     all_accs = client.get("/api/accounts", headers=origin).json()
     acc_map = {a["platform"]: a for a in all_accs}
     check("accounts list has twitter", "twitter" in acc_map, True)
     check("accounts list has linkedin", "linkedin" in acc_map, True)
     check("accounts list has facebook", "facebook" in acc_map, True)
+    check("accounts list has instagram", "instagram" in acc_map, True)
+    check("accounts list has tiktok", "tiktok" in acc_map, True)
     check("accounts list has url", bool(acc_map["twitter"].get("url")), True)
 
     # 8. Test Storage Backup Download (.zip)

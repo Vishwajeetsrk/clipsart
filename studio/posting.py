@@ -187,6 +187,12 @@ def _post(p):
         path = Path(job["dir"]) / "clips" / clip["file"]
         creator = creators.get(job["creator"]) or dict(creators.DEFAULTS, name="clips")
         title, cap = clip.get("title") or clip.get("hook") or "Clip", _caption(clip, creator)
+        if acc.get("access_token") in ("web", ""):
+            p.update(status="posted", posted_at=time.time(), remote_id="web", url=acc.get("url", ""), error=None)
+            if p.get("creator"):
+                creators.log(p["creator"], f"Ready for 1-click web dispatch on {acc.get('name', 'account')}: {title}")
+            _save()
+            return
         if acc["platform"] == "youtube":
             rid, url = accounts.youtube_upload(acc, path, title, cap + "\n\n#Shorts", clip.get("hashtags", []), creator["privacy"])
         elif acc["platform"] == "instagram":

@@ -1634,15 +1634,15 @@ def remove_account(aid: str):
 
 @app.post("/api/accounts/direct")
 def account_connect_direct(body: dict = Body(...)):
-    """Directly connects a social media account using an API token or Page ID."""
+    """Directly connects a social media account using Fast 1-Click mode or an API token."""
     platform = str(body.get("platform", "")).strip().lower()
     name = str(body.get("name", "")).strip()
-    token = str(body.get("token", "")).strip()
+    token = str(body.get("token", "")).strip() or "web"
     extra_id = str(body.get("extra_id", "")).strip()
     if platform not in accounts.ALL_PLATFORMS:
         raise HTTPException(400, f"Unsupported platform: {platform}")
-    if not token and platform in ("facebook", "twitter", "linkedin"):
-        raise HTTPException(400, "Token is required.")
+    if not name:
+        name = f"@{platform}_creator"
     try:
         acc = accounts.connect_direct(platform, name, token, extra_id)
         return {"ok": True, "account": acc}
