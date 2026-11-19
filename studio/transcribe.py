@@ -108,10 +108,8 @@ def _load_sherpa():
         if mod:
             return mod
     # A copy of the library in a short folder. Same version check each start, so an update replaces it.
-    # Reuse the existing model cache path so upgraded Windows installs do not download it again.
     root = Path(os.environ.get("LOCALAPPDATA") or Path.home())
-    legacy = root / "".join(("Peak", "Cut")) / "lib"
-    base = legacy if legacy.is_dir() else root / "Clipsart" / "lib"
+    base = root / "Clipsart" / "lib"
     stamp = base / "sherpa_onnx.from"
     want = f"{pkg}|{(pkg / '__init__.py').stat().st_mtime_ns}"
     try:

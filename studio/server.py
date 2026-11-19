@@ -279,10 +279,17 @@ def _from_here(req, must_say=False) -> bool:
     web shield, a browser extension), which made every save fail with "Cross-site requests are not allowed"."""
     if (req.headers.get("sec-fetch-site") or "").lower() == "same-origin":
         return True
+    host = (req.headers.get("host") or "").lower()
+    public_netloc = urlparse(config.PUBLIC_URL).netloc.lower()
     origin = (req.headers.get("origin") or "").rstrip("/").lower()
-    if not origin:
-        return not must_say
-    return urlparse(origin).netloc == (req.headers.get("host") or "").lower() or origin == config.PUBLIC_URL.lower()
+    if origin:
+        origin_netloc = urlparse(origin).netloc.lower()
+        return origin_netloc == host or origin_netloc == public_netloc or origin == config.PUBLIC_URL.lower()
+    referer = (req.headers.get("referer") or "").rstrip("/").lower()
+    if referer:
+        referer_netloc = urlparse(referer).netloc.lower()
+        return referer_netloc == host or referer_netloc == public_netloc or referer.startswith(config.PUBLIC_URL.lower())
+    return not must_say
 
 
 def _own_address(host: str) -> bool:
@@ -450,7 +457,8 @@ def public_config():
 def _signed_in(request: Request, user, first: bool, redirect=None):
     token = auth.start_session(user.id, _ip(request), request.headers.get("user-agent", ""))
     resp = RedirectResponse(redirect, 303) if redirect else JSONResponse({"user": auth.public(user)})
-    resp.set_cookie(**auth.cookie_args(token))
+    is_secure = config.HTTPS or (request.url.scheme == "https") or (request.headers.get("x-forwarded-proto", "").lower() == "https")
+    resp.set_cookie(**auth.cookie_args(token, secure=is_secure))
     return resp
 
 
@@ -529,8 +537,8 @@ def login(request: Request, body: dict = Body(...)):
 def logout(request: Request):
     auth.end_session(auth.session_token(request.cookies))
     resp = JSONResponse({"ok": True})
-    resp.delete_cookie(auth.COOKIE, path="/")
-    resp.delete_cookie(auth._LEGACY_COOKIE, path="/")
+    is_secure = config.HTTPS or (request.url.scheme == "https") or (request.headers.get("x-forwarded-proto", "").lower() == "https")
+    resp.delete_cookie(auth.COOKIE, path="/", httponly=True, samesite="lax", secure=is_secure)
     return resp
 
 
@@ -1306,8 +1314,9 @@ def delete_my_account(request: Request, body: dict = Body(...)):
 def media_file(jid: str, name: str, download: int = 0):
     if not re.fullmatch(r"[\w\-.]+\.(mp4|jpg|mp3|wav|m4a|aac|ogg|flac)", name):
         raise HTTPException(404)
-    f = Path(_job_or_404(jid)["dir"]) / "clips" / name
-    if not f.is_file():
+    clips_dir = (Path(_job_or_404(jid)["dir"]) / "clips").resolve()
+    f = (clips_dir / name).resolve()
+    if not f.is_file() or not f.is_relative_to(clips_dir):
         raise HTTPException(404)
     return FileResponse(f, filename=name if download else None, headers={"Cache-Control": "private, max-age=300"})
 
@@ -1537,8 +1546,12 @@ def ai_usage():
 
 # ---------------------------------------------------------------- the AI key and model, set from the dashboard
 # Only the owner (or an admin, when accounts are on) reaches these. The key is never sent back to the page.
-def _ai_error(e) -> str:
-    return safe.friendly(e, 300).replace(ai.key() or "\0", "<key>")
+def _ai_error(e, candidate_key=None) -> str:
+    msg = safe.friendly(e, 300)
+    for k in (ai.key(), candidate_key):
+        if k and isinstance(k, str) and k.strip():
+            msg = msg.replace(k, "<key>")
+    return msg
 
 
 @app.get("/api/ai")
@@ -1571,8 +1584,9 @@ def ai_models(request: Request, body: dict = Body(default={})):
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
         reason = ai.explain(e)
+        candidate = body.get("key") if isinstance(body, dict) else None
         raise HTTPException(502, f"The service did not give its list of models. {reason}" if reason else
-                            "The service did not give its list of models. Check the key, or type the model yourself. " + _ai_error(e)[:160])
+                            "The service did not give its list of models. Check the key, or type the model yourself. " + _ai_error(e, candidate)[:160])
 
 
 @app.post("/api/ai/test")

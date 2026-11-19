@@ -23,14 +23,7 @@ _load_dotenv()
 
 
 def env(name: str, default=None):
-    """Read current Clipsart settings while accepting pre-rebrand installs."""
-    if name.startswith("CLIPSART_"):
-        if name in os.environ:
-            return os.environ[name]
-        legacy_prefix = "".join(("PEAK", "CUT", "_"))
-        legacy = legacy_prefix + name.removeprefix("CLIPSART_")
-        if legacy in os.environ:
-            return os.environ[legacy]
+    """Read current Clipsart settings."""
     return os.environ.get(name, default)
 
 
@@ -139,7 +132,12 @@ YT_TRANSCRIPT = env("CLIPSART_YT_TRANSCRIPT", "1") != "0"
 ASR_MODEL_NAME = env("CLIPSART_ASR_MODEL", "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8")
 ASR_MODEL_DIR = MODELS_DIR / ASR_MODEL_NAME
 _legacy_db = DATA_DIR / ("".join(("peak", "cut")) + ".db")
-_default_db = _legacy_db if _legacy_db.is_file() else DATA_DIR / "clipsart.db"
+if _legacy_db.is_file() and not (DATA_DIR / "clipsart.db").is_file():
+    try:
+        _legacy_db.rename(DATA_DIR / "clipsart.db")
+    except OSError:
+        pass
+_default_db = DATA_DIR / "clipsart.db"
 DATABASE_URL = env("DATABASE_URL") or f"sqlite:///{_default_db.as_posix()}"
 # Commercials and "be right back" screens are stitched into streams. A clip taken from one is worthless, so those
 # seconds can be found and left out. It is off by default: it reads the whole video once, which is not free, and
@@ -165,7 +163,8 @@ def user_dir(uid: str) -> Path:
 # ---------------------------------------------------------------- the site
 HOST = env("CLIPSART_HOST", "127.0.0.1")
 PORT = int(env("CLIPSART_PORT") or "8765")
-PUBLIC_URL = (env("CLIPSART_PUBLIC_URL") or f"http://127.0.0.1:{PORT}").rstrip("/")   # e.g. https://your-domain.example
+_domain = (env("CLIPSART_DOMAIN") or "").strip()
+PUBLIC_URL = (env("CLIPSART_PUBLIC_URL") or (f"https://{_domain}" if _domain else f"http://127.0.0.1:{PORT}")).rstrip("/")
 HTTPS = PUBLIC_URL.startswith("https://")
 SESSION_DAYS = int(env("CLIPSART_SESSION_DAYS", "30"))
 # Accounts are off by default: Clipsart opens straight into the dashboard, with no sign-in, which is what you want

@@ -13,13 +13,11 @@ import sqlalchemy as sa
 
 from . import config, db
 
-# Keep the original cookie name so existing browser sessions survive the rebrand.
 COOKIE = "clipsart_session"
-_LEGACY_COOKIE = "".join(("peak", "cut")) + "_session"
 
 
 def session_token(cookies):
-    return cookies.get(COOKIE, "") or cookies.get(_LEGACY_COOKIE, "")
+    return cookies.get(COOKIE, "")
 # No commas, semicolons, quotes, brackets or backslashes: in an email header those turn one address into several.
 EMAIL_RE = re.compile(r"^[^@\s,;:<>\"()\[\]\\]{1,64}@[^@\s,;:<>\"()\[\]\\]{1,180}\.[A-Za-z]{2,24}$")
 _SCRYPT = {"n": 2 ** 15, "r": 8, "p": 1}
@@ -338,9 +336,10 @@ def end_session(token: str):
         c.execute(db.sessions.delete().where(db.sessions.c.token_hash == _h(token)))
 
 
-def cookie_args(token: str) -> dict:
+def cookie_args(token: str, secure: bool = None) -> dict:
+    sec = config.HTTPS if secure is None else secure
     return {"key": COOKIE, "value": token, "max_age": config.SESSION_DAYS * 86400, "httponly": True,
-            "samesite": "lax", "secure": config.HTTPS, "path": "/"}
+            "samesite": "lax", "secure": sec, "path": "/"}
 
 
 # ---------------------------------------------------------------- Sign in with Google

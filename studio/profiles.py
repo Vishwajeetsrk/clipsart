@@ -32,7 +32,19 @@ _again: set = set()
 _lock = threading.Lock()
 
 
+def _is_private_host(hostname: str) -> bool:
+    import ipaddress
+    try:
+        ip = ipaddress.ip_address(hostname)
+        return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast
+    except ValueError:
+        return hostname.lower() in ("localhost", "127.0.0.1", "0.0.0.0", "::1")
+
+
 def _get(url: str, accept: str = "text/html", limit: int = 3_000_000):
+    u = urlparse(url)
+    if u.scheme not in ("http", "https") or not u.hostname or _is_private_host(u.hostname):
+        raise ValueError("Invalid target URL.")
     req = urllib.request.Request(url, headers={**UA, "Accept": accept})
     with urllib.request.urlopen(req, timeout=10) as r:
         return r.headers.get("Content-Type") or "", r.read(limit)
@@ -64,8 +76,21 @@ def _short(n: int) -> str:
 
 
 def platform_of(url: str) -> str:
-    h = (urlparse(url if "://" in url else "https://" + url).hostname or "").lower()
-    return "YouTube" if "youtube" in h or h == "youtu.be" else "Twitch" if "twitch" in h else "Kick" if "kick" in h else ""
+    from urllib.parse import urlparse
+    try:
+        u = urlparse(url if "://" in url else "https://" + url)
+    except Exception:
+        return ""
+    if u.scheme not in ("http", "https"):
+        return ""
+    h = (u.hostname or "").lower()
+    if h in ("youtube.com", "youtu.be") or h.endswith((".youtube.com", ".youtu.be")):
+        return "YouTube"
+    if h == "twitch.tv" or h.endswith(".twitch.tv"):
+        return "Twitch"
+    if h == "kick.com" or h.endswith(".kick.com"):
+        return "Kick"
+    return ""
 
 
 def fetch(channel: str) -> dict:

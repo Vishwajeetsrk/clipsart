@@ -67,7 +67,7 @@ def main() -> int:
                 ("finding the facecam in a gaming stream", ["tests/test_facecam.py"]),
                 ("fresh installs: ffmpeg, the speech model, AI errors", ["tests/test_tools.py"]),
                 ("the storage folder: full drive, open, move", ["tests/test_storage.py"]),
-                ("security, Clipsart configuration migration and support email", ["tests/test_hardening.py"]),
+                ("security, Clipsart configuration and support email", ["tests/test_hardening.py"]),
                 ("long logs, the machine monitor, failed recordings, admin day totals", ["tests/test_robustness.py"])]
         for name, args in runs:
             print(f"\n=== {name} ===", flush=True)

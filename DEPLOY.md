@@ -24,6 +24,17 @@ Clipsart runs as three containers on one Linux server: the app, PostgreSQL, and 
    admin, and no page or web request can make someone an admin: only that command can.
 6. Sign in as that admin, open **Settings, AI**, and add your AI key there (or put it in `.env`).
 
+### Use a subdomain of an existing domain
+
+For example, to use `clipsart.learnifyai.in` while keeping the existing `learnifyai.in` site:
+
+1. In the DNS dashboard that currently manages `learnifyai.in`, add an `A` record named `clipsart` pointing to the public IPv4 address of the Linux server. Use `AAAA` for an IPv6-only server, or `CNAME` if your host supplies a DNS hostname. Do not change the root (`@`) record used by the current website.
+2. In the server firewall and hosting panel, allow inbound TCP ports 80 and 443. The app itself stays bound to localhost on port 8765; Caddy handles public HTTPS.
+3. Set `CLIPSART_DOMAIN=clipsart.learnifyai.in` and `COMPOSE_PROFILES=own-https` in the server's `.env`. Keep all existing secret values there.
+4. Run `docker compose up -d --build`. Once DNS resolves to this server and ports 80/443 reach it, Caddy obtains the HTTPS certificate automatically. Open `https://clipsart.learnifyai.in`.
+
+DNS record changes can take time to appear worldwide. If the existing root domain is hosted on the same server and already uses ports 80/443, use its existing web server as a reverse proxy instead; see `deploy/nginx-clipsart.conf` and omit `COMPOSE_PROFILES=own-https`.
+
 ## Connecting YouTube, Instagram and TikTok
 
 People connect their accounts with one click in **Settings, Connected apps**: they press Connect, sign in on the

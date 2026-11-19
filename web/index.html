@@ -1222,7 +1222,7 @@ async function openFeedback(kind = "bug", context = "") {
     <h2>Help improve Clipsart</h2><p class="help">Share an idea, report a problem, or send a message to support.</p>
     <label class="f">Type<select name="kind"><option value="idea" ${kind === "idea" ? "selected" : ""}>Suggestion</option><option value="bug" ${kind === "bug" ? "selected" : ""}>Problem report</option><option value="other" ${kind === "other" ? "selected" : ""}>Other message</option></select></label>
     <label class="f">Your message<textarea name="message" rows="7" maxlength="4000" required placeholder="What should we improve?">${esc(initial)}</textarea></label>
-    <p class="sub">Reports are saved in the app and emailed to support.learnifyai@gmail.com when email delivery is configured.</p>
+    <p class="sub">Reports are saved in the app and emailed to support.learnifyai@gmail.com when email delivery is configured. To support Clipsart's development, <a href="https://razorpay.me/@learnifyaifree" target="_blank" rel="noopener noreferrer">contribute securely with Razorpay</a>.</p>
     <div class="row"><button class="btn" type="button" data-act="closeform">Cancel</button><button class="btn primary" type="submit">Send</button></div></form>`;
   d.showModal(); d.querySelector("textarea").focus();
 }

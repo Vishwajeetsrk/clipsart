@@ -26,8 +26,20 @@ PLATFORMS = ("youtube", "twitch", "kick")
 
 def platform_key(url: str) -> str:
     from urllib.parse import urlparse
-    h = (urlparse(url if "://" in url else "https://" + url).hostname or "").lower()
-    return "youtube" if "youtube" in h or h == "youtu.be" else "twitch" if "twitch" in h else "kick" if "kick" in h else ""
+    try:
+        u = urlparse(url if "://" in url else "https://" + url)
+    except Exception:
+        return ""
+    if u.scheme not in ("http", "https"):
+        return ""
+    h = (u.hostname or "").lower()
+    if h in ("youtube.com", "youtu.be") or h.endswith((".youtube.com", ".youtu.be")):
+        return "youtube"
+    if h == "twitch.tv" or h.endswith(".twitch.tv"):
+        return "twitch"
+    if h == "kick.com" or h.endswith(".kick.com"):
+        return "kick"
+    return ""
 
 
 def _fix(c: dict) -> dict:

@@ -202,16 +202,26 @@ def preview(url: str) -> dict:
     t = i.get("thumbnail") or ""
     if t.startswith("https://"):
         import base64
+        import ipaddress
         import urllib.request
+        from urllib.parse import urlparse
+        host = (urlparse(t).hostname or "").lower()
+        is_private = False
         try:
-            req = urllib.request.Request(t, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=6) as r:
-                ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip()
-                data = r.read(600_000 + 1)
-            if ctype in ("image/jpeg", "image/png", "image/webp") and len(data) <= 600_000:
-                thumb = f"data:{ctype};base64," + base64.b64encode(data).decode()
-        except Exception:
-            thumb = ""
+            ip = ipaddress.ip_address(host)
+            is_private = ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast
+        except ValueError:
+            is_private = host in ("localhost", "127.0.0.1", "0.0.0.0", "::1")
+        if not is_private:
+            try:
+                req = urllib.request.Request(t, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=6) as r:
+                    ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip()
+                    data = r.read(600_000 + 1)
+                if ctype in ("image/jpeg", "image/png", "image/webp") and len(data) <= 600_000:
+                    thumb = f"data:{ctype};base64," + base64.b64encode(data).decode()
+            except Exception:
+                thumb = ""
     out = {"title": i["title"][:200], "uploader": i["uploader"][:120], "duration": i["duration"],
            "is_live": i["is_live"], "thumb": thumb}
     if len(_PREVIEWS) > 300:

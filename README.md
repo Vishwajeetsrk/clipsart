@@ -11,6 +11,7 @@
 - Connect YouTube, Instagram and TikTok, prepare post titles and descriptions, schedule a post for a chosen time, or use the existing automatic queue.
 - Organize creators, channels, clips, publishing rules and activity in separate workspaces.
 - Send suggestions and problem reports from the app. Reports are kept in the admin inbox; when SMTP is configured they are also emailed to `support.learnifyai@gmail.com`.
+- Support Clipsart's development through [Razorpay](https://razorpay.me/@learnifyaifree).
 - Use Gemini, OpenAI, Grok, Groq, OpenRouter, Claude, Ollama or an OpenAI-compatible model. Clipsart also selects moments by loudness when no AI key is set.
 
 ## Quick start
@@ -75,6 +76,10 @@ The sender must be an address your provider permits. When SMTP is not configured
 For a server, set `CLIPSART_ACCOUNTS=1`, configure an HTTPS domain, and follow [DEPLOY.md](DEPLOY.md) for Docker, PostgreSQL and Caddy. Register OAuth callback URLs with the publishing platforms you enable. Clipsart never asks for those platforms' passwords. Account emails, optional Google sign-in, Instagram and TikTok app credentials, storage and upload limits are documented in `.env.example`.
 
 Use `python -m studio.admin grant you@example.com` on the server to grant an account administrator access. The admin page is at `/admin`. User content and settings remain in the data folder; preserve it when upgrading or backing up.
+
+### Use a subdomain such as `clipsart.learnifyai.in`
+
+Add a DNS `A` record with name `clipsart` and the public IPv4 address of the Linux server that will run Clipsart. This creates `clipsart.learnifyai.in` without changing the existing `learnifyai.in` website. If your server has only IPv6, add an `AAAA` record instead; if your hosting provider gives you a hostname, use a `CNAME` record to that hostname. Then set `CLIPSART_DOMAIN=clipsart.learnifyai.in` and `COMPOSE_PROFILES=own-https` in the server's private `.env`, allow inbound ports 80 and 443, and run `docker compose up -d --build`. Caddy obtains and renews HTTPS certificates automatically after DNS points at that server. See [DEPLOY.md](DEPLOY.md).
 
 ## Update
 
