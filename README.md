@@ -1,78 +1,51 @@
-# PeakCut
+# Clipsart
 
-Turn long videos and live streams into captioned vertical clips, ready to post. Free and open source: run it on
-your own computer or server, with your own AI key.
+**Clipsart turns long videos and live streams into editable, captioned short clips.** Choose your moments, fine tune the video, design a thumbnail from its frames, then queue or publish to your connected channels. It is free and open source and runs on your computer or server.
 
-Paste a YouTube, Twitch or Kick link (or upload a file) and PeakCut finds the moments worth clipping, cuts them to
-9:16, adds word-by-word captions and a hook, and can post them to your connected accounts. It can also record a
-creator's live stream and clip the highlights while the stream is still running.
+## Features
 
-## What it does
-
-- **Clips from any video.** Transcribes the audio, asks an AI which moments would hold a stranger's attention, and
-  renders each one with captions in one of three styles.
-- **Live clipping.** Records a stream into a rolling buffer and clips as it happens, using loudness, chat activity
-  and the transcript.
-- **Workspaces per creator.** Channels, clip settings, posting rules and an activity log for each creator you clip.
-- **Posting.** Connect YouTube, Instagram and TikTok in one click, then queue or auto-post finished clips, with
-  spacing and daily caps (see [DEPLOY.md](DEPLOY.md#connecting-youtube-instagram-and-tiktok) for the one-time setup).
-- **No sign-in on your own computer.** It opens straight into the dashboard. On a shared server, switch accounts on
-  (`PEAKCUT_ACCOUNTS=1`) for email or Google sign-in and an admin dashboard.
-- **Your own AI.** Gemini, OpenAI, Grok, Groq, OpenRouter, Claude, a local model through Ollama, or anything that
-  speaks the OpenAI chat format. No key at all also works: clips are then picked by loudness.
+- Find highlights in YouTube, Twitch and Kick videos, live streams, or uploaded video files with AI suggestions and speech transcription.
+- Make vertical clips with word-by-word captions in Bounce, Hype and Clean styles. Choose blurred fill, zoom, centre crop or gameplay with facecam.
+- Refine clips with a trim timeline, hook and post text editor, music mix controls, image overlay and fast preview rendering.
+- Design a thumbnail from a video frame, add title text or a custom image, preview it, and save or restore the cover.
+- Connect YouTube, Instagram and TikTok, prepare post titles and descriptions, schedule a post for a chosen time, or use the existing automatic queue.
+- Organize creators, channels, clips, publishing rules and activity in separate workspaces.
+- Send suggestions and problem reports from the app. Reports are kept in the admin inbox; when SMTP is configured they are also emailed to `support.learnifyai@gmail.com`.
+- Use Gemini, OpenAI, Grok, Groq, OpenRouter, Claude, Ollama or an OpenAI-compatible model. Clipsart also selects moments by loudness when no AI key is set.
 
 ## Quick start
 
-You need Python 3.10 or newer and `ffmpeg`. On Windows: `winget install Gyan.FFmpeg`. On a Mac: `brew install ffmpeg`.
-On Linux: `sudo apt install ffmpeg`. PeakCut finds it by itself and tells you in the dashboard if it is missing.
+You need Python 3.10 or newer and `ffmpeg`. Install ffmpeg with `winget install Gyan.FFmpeg` on Windows, `brew install ffmpeg` on macOS, or `sudo apt install ffmpeg` on Debian or Ubuntu. Clipsart stores videos, models and settings under its data folder and downloads a speech model on first start (about 480 MB).
 
-Put PeakCut in a short folder that stays put: `C:\peakcut` on Windows, `~/peakcut` on a Mac or Linux. Not inside a
-temporary folder or an AI assistant's workspace: those get cleaned up, and on Windows a folder that deep stops the
-speech model from loading (Windows can't open files whose full path is over 260 characters). If an AI assistant
-installs it for you, it should ask you where to put it first ([AGENTS.md](AGENTS.md) tells it to).
+Clone only your Clipsart repository into a short, permanent folder. Keep it out of temporary directories and assistant workspaces; on Windows, a deeply nested folder can prevent the speech model from loading.
 
-On Windows:
+Windows PowerShell:
 
-```bash
-git clone <this repository> C:\peakcut
-```
-
-```bash
-cd C:\peakcut
-```
-
-On a Mac or Linux:
-
-```bash
-git clone <this repository> ~/peakcut
-```
-
-```bash
-cd ~/peakcut
-```
-
-```bash
-pip install -r requirements.txt
-```
-
-Start the server:
-
-```bash
+```powershell
+git clone https://github.com/Vishwajeetsrk/clipsart.git C:\Clipsart
+cd C:\Clipsart
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 python -m studio.server
 ```
 
-The first start downloads the speech model by itself (about 480 MB, once).
+macOS or Linux:
 
-Open http://127.0.0.1:8765. There is no sign-in: it opens straight into the dashboard. Go to **Settings, AI**, choose
-your AI service, paste your key and press **Save and test** (see [Choose your AI](#choose-your-ai)).
+```bash
+git clone https://github.com/Vishwajeetsrk/clipsart.git ~/Clipsart
+cd ~/Clipsart
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m studio.server
+```
 
-## Choose your AI
+Open <http://127.0.0.1:8765>, go to **Settings → AI**, and save your model key. On a personal computer sign in is off by default. Do not expose the app publicly until you enable accounts and configure HTTPS.
 
-PeakCut needs a chat model that can return JSON. The easy way is in the dashboard: **Settings, AI**. Pick the
-service, paste your key, press **Find models** to choose from the service's own list, then **Save and test**. The
-key is kept in the data folder on your machine and is never shown again.
+## Configure AI
 
-If you prefer a file (or run a server), the same three things can go in `.env`. What is saved in the dashboard wins:
+The dashboard is the easiest place to set an AI provider, key and model. Settings can also go in a private `.env` file, using the `PEAKCUT_` prefix documented in [`.env.example`](.env.example). Existing configuration, databases and user media are preserved when updating.
 
 ```ini
 PEAKCUT_AI_PROVIDER=gemini
@@ -80,126 +53,61 @@ PEAKCUT_AI_MODELS=gemini-2.5-flash
 PEAKCUT_AI_KEY=your-key-here
 ```
 
-| `PEAKCUT_AI_PROVIDER` | Service | Where to get a key |
-|---|---|---|
-| `gemini` | Google Gemini | https://aistudio.google.com/apikey |
-| `openai` | OpenAI | https://platform.openai.com/api-keys |
-| `xai` | Grok (xAI) | https://console.x.ai |
-| `groq` | Groq | https://console.groq.com/keys |
-| `openrouter` | OpenRouter (many models, one key) | https://openrouter.ai/keys |
-| `anthropic` | Claude | https://console.anthropic.com |
-| `ollama` | A model on your own machine, no key | https://ollama.com |
-| `custom` | Any OpenAI-compatible address: also set `PEAKCUT_AI_BASE_URL` | |
+Get a key from [Google AI Studio](https://aistudio.google.com/apikey), [OpenAI](https://platform.openai.com/api-keys), [xAI](https://console.x.ai), [Groq](https://console.groq.com/keys), [OpenRouter](https://openrouter.ai/keys), or [Anthropic](https://console.anthropic.com). Ollama can run a local model. The provider bills you directly; Clipsart does not add a fee. Speech transcription runs on your computer.
 
-- `PEAKCUT_AI_MODELS` is the model id exactly as the service names it. Model names change often, so check the
-  service's current list. Several ids separated by commas are tried in order, which gives you a fallback.
-- A fast, inexpensive model is the right choice. A one-hour video is read in about four requests.
-- You pay the AI service directly for what you use. The **AI usage** page in the app shows how many requests and
-  tokens each video took.
-- Speech to text does not use the AI service. It runs on your own machine, so audio never leaves it.
+## Suggestion and report email
 
-## Settings
+The app always stores reports and ideas for signed-in users in Clipsart's admin inbox. Email delivery is optional. To send a notification to `support.learnifyai@gmail.com`, configure these `PEAKCUT_` settings with an SMTP provider. Keep credentials private in `.env` and do not commit that file.
 
-Everything is set through environment variables, normally in a `.env` file next to this README.
-[`.env.example`](.env.example) lists every setting with a short explanation. The ones that matter first:
-
-| Setting | What it is for |
-|---|---|
-| `PEAKCUT_AI_PROVIDER`, `PEAKCUT_AI_MODELS`, `PEAKCUT_AI_KEY` | The AI that picks clips and writes titles (or set it in the dashboard) |
-| `PEAKCUT_ACCOUNTS` | `1` makes everyone sign in. Use it on any server other people can reach |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Optional: Sign in with Google, and connecting YouTube |
-| `PEAKCUT_SMTP_*`, `PEAKCUT_MAIL_FROM` | Optional: confirmation and password emails |
-| `PEAKCUT_DATA` | Where videos, clips and the database are kept (default `./data`) |
-
-`.env`, the `secrets/` folder and all user data are ignored by git. Keep keys there, never in the code.
-
-## Admins
-
-This only matters with accounts switched on (`PEAKCUT_ACCOUNTS=1`); without them you are the owner and can do
-everything. An account is an admin only when the database says so. No email address is special in the code and no web request
-can change a role. Do it on the machine that runs PeakCut:
-
-```bash
-python -m studio.admin grant you@example.com
+```ini
+PEAKCUT_CONTACT_EMAIL=support.learnifyai@gmail.com
+PEAKCUT_SMTP_HOST=
+PEAKCUT_SMTP_PORT=587
+PEAKCUT_SMTP_USER=
+PEAKCUT_SMTP_PASSWORD=
+PEAKCUT_MAIL_FROM=Clipsart <hello@your-domain.example>
 ```
 
-`revoke` and `list` work the same way. The admin dashboard is at `/admin` and answers "not found" to everyone else.
+The sender must be an address your provider permits. When SMTP is not configured or sending fails, users can still see that the report was saved; the app does not claim the message was emailed.
 
-## How it is built
+## Configure a public server
 
-| Part | What it is |
-|---|---|
-| `studio/` | The server: FastAPI, the clip pipeline, live recording, accounts |
-| `studio/ai.py` | The only file that talks to an AI service. Add a provider here |
-| `web/` | The pages: landing, sign-in, the app, the admin dashboard (plain HTML, CSS and JavaScript, no build step) |
-| `tests/` | Tests that run against a throwaway copy of the app |
-| `deploy/`, `Dockerfile`, `docker-compose.yml` | One-server deployment with PostgreSQL and automatic HTTPS |
+For a server, set `PEAKCUT_ACCOUNTS=1`, configure an HTTPS domain, and follow [DEPLOY.md](DEPLOY.md) for Docker, PostgreSQL and Caddy. Register OAuth callback URLs with the publishing platforms you enable. Clipsart never asks for those platforms' passwords. Account emails, optional Google sign-in, Instagram and TikTok app credentials, storage and upload limits are documented in `.env.example`.
 
-Video work is done with `ffmpeg` and `yt-dlp`. Speech is transcribed with `sherpa-onnx` and the Parakeet model.
-Data is kept per user: accounts in the database (SQLite on your own computer, PostgreSQL on a server), videos and
-clips in each user's own folder. [AGENTS.md](AGENTS.md) is a short map of the code for contributors and AI coding
-assistants.
+Use `python -m studio.admin grant you@example.com` on the server to grant an account administrator access. The admin page is at `/admin`. User content and settings remain in the data folder; preserve it when upgrading or backing up.
 
-## Where your videos and clips are kept
+## Update
 
-Everything PeakCut keeps is in one folder: videos, clips, recordings, creators, settings and the speech model. By
-default it is the `data` folder inside PeakCut. **Settings, Storage** shows the folder and how much room its drive
-has, opens it in one click, and lets you move it to another drive: choose the new folder, and PeakCut moves
-everything there the next time it starts. If the drive is nearly full, PeakCut says so and stops taking new videos
-until there is room. (`PEAKCUT_DATA` in `.env` still works and takes priority.)
-
-## Updating
-
-PeakCut checks GitHub once a minute while it runs. When a newer version is out, the dashboard shows a notice
-within a minute or two (no restart needed), with what changed
-and how to update: ask your AI coding assistant to do it (the notice has a sentence to paste), or run
-`git pull && pip install -r requirements.txt` in the PeakCut folder and restart it (with Docker:
-`git pull && docker compose up -d --build`). Your `.env`, keys and clips are not touched. Only the two commit ids
-are sent to GitHub; set `PEAKCUT_UPDATE_CHECK=0` to turn the check off.
-
-## Deploy
-
-[DEPLOY.md](DEPLOY.md) walks through a single server with Docker: the app, PostgreSQL, and Caddy for HTTPS.
+From the project folder, run:
 
 ```bash
-docker compose up -d --build
+git pull
+python -m pip install -r requirements.txt
 ```
 
-## How it behaves under load
+Restart Clipsart after updating. For Docker, run `docker compose up -d --build`. Do not remove your `.env` or data folder.
 
-- The page asks the server one small question every few seconds. When nothing has changed, the answer comes
-  straight from memory.
-- Each person's videos wait in their own line and the lines take turns, so one person cannot hold everyone up.
-- The server measures its own processor, memory and disk every second. Extra videos and recordings start only
-  while there is room, wait briefly when it is nearly full, and continue the moment it frees up.
-- There are no limits on upload size, video length, recordings, creators or storage unless you set them in
-  `.env`. Five videos can be sent at once. Request sizes are always capped, so junk can't fill the memory.
-
-## Tests
+## Check the commands and tests
 
 ```bash
+python -m compileall -q studio tests
 python tests/run.py
 ```
 
-This starts a copy of the app on a spare port with an empty temporary data folder, runs the permission, abuse and
-queue tests against it, then removes it. It needs no keys and never touches real data.
+The regression runner starts the app against isolated temporary data. It requires no live publishing credentials and should never be run with your personal data as a test fixture.
 
-## Security
+## Project map
 
-- With sign-in off, PeakCut listens on this computer only (`127.0.0.1`), refuses changes sent by other websites,
-  and only answers to its own address. Do not expose it to the internet that way: turn accounts on.
-- Passwords are stored only as salted scrypt hashes. Sessions are random tokens stored hashed; cookies are HTTP-only.
-- Every route works out who is asking from the session, never from the request, so users only reach their own data.
-- Only known video sites are fetched, and text from videos is treated as data when it is shown to the AI.
-- Found a problem? Please report it privately through the repository's security advisories instead of opening a
-  public issue.
+- `studio/` contains the FastAPI service and media pipeline.
+- `web/` contains the app, landing, authentication and admin pages and brand files.
+- `tests/` contains the regression suite.
+- `deploy/`, `Dockerfile` and `docker-compose.yml` contain server deployment files.
+- [PRD.md](PRD.md) lists product requirements, [TASKS.md](TASKS.md) tracks delivery, and [GLOBAL_RULES.md](GLOBAL_RULES.md) describes repository rules.
 
-## Using it responsibly
+## Rights and safety
 
-Clip videos you made, or have permission to use. You are responsible for the rights to what you download, clip and
-post, and for following the terms of the sites you fetch from and post to.
+Only clip and publish videos, music and artwork you have created or have permission to reuse. Imported music is not assumed to be copyright free; retain its licence and attribution. Review AI-selected moments, captions, thumbnails and post copy before publishing. Respect the terms of each source and publishing platform.
 
-## Licence
+## License
 
-[MIT](LICENSE). Caption fonts in `studio/fonts/` (Anton, Archivo Black, Poppins) are under the SIL Open Font
-License; the licence texts are in the same folder.
+[MIT](LICENSE). Caption fonts under `studio/fonts/` are licensed under the SIL Open Font License; their license texts are in that folder.

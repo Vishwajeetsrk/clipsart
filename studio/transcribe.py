@@ -64,10 +64,10 @@ def _sherpa():
 
 
 def _load_sherpa():
-    """On Windows a file whose full path is over 260 characters cannot be loaded, which happens when PeakCut sits in a
+    """On Windows a file whose full path is over 260 characters cannot be loaded, which happens when Clipsart sits in a
     deep folder ("DLL load failed ... The filename or extension is too long"). Then the library is loaded through
     the folder's short name (C:\\Users\\...\\SITE-P~1), which points at the same files, or else from a copy of it
-    in a short folder (AppData\\Local\\PeakCut\\lib), made once."""
+    in a short folder (AppData\\Local\\Clipsart\\lib), made once."""
     import sys
     try:
         import sherpa_onnx
@@ -108,6 +108,7 @@ def _load_sherpa():
         if mod:
             return mod
     # A copy of the library in a short folder. Same version check each start, so an update replaces it.
+    # Reuse the existing model cache path so upgraded Windows installs do not download it again.
     base = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "PeakCut" / "lib"
     stamp = base / "sherpa_onnx.from"
     want = f"{pkg}|{(pkg / '__init__.py').stat().st_mtime_ns}"
@@ -121,8 +122,8 @@ def _load_sherpa():
             return mod
     except OSError:
         pass
-    raise RuntimeError("PeakCut is in a folder too deep for Windows to load the speech model from. Move the PeakCut "
-                       "folder somewhere short, like C:\\peakcut, and start it again.") from first
+    raise RuntimeError("Clipsart is in a folder too deep for Windows to load the speech model from. Move the Clipsart "
+                       "folder somewhere short, like C:\\Clipsart, and start it again.") from first
 
 
 def _new():

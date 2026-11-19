@@ -1,6 +1,14 @@
-# PeakCut Global Rules
+# Clipsart Global Rules
 
 These rules apply to every future feature, fix, test, and release in this repository.
+
+## Brand, repository, and support
+
+- Use Clipsart as the product name and the `https://github.com/Vishwajeetsrk/clipsart` repository for clone, update, publishing, and release instructions.
+- Preserve existing user settings, `.env` files, storage paths, databases, media, and legacy `PEAKCUT_*` configuration compatibility across the rebrand.
+- Never rewrite published Git history or force-push to suppress GitHub's automatically generated contributor list without explicit, just-in-time approval from the repository owner.
+- Suggestions and problem reports must be validated and saved to the existing feedback store. Email the configured support contact only through a configured SMTP provider, and show the user whether delivery is configured.
+- Do not commit local secrets or `.env`; keep support mailbox credentials out of source code.
 
 ## Preserve user work
 
@@ -47,4 +55,3 @@ These rules apply to every future feature, fix, test, and release in this reposi
 - Before release, verify old jobs, live clipping, captions, layouts, re-render, download, queue, and posting regressions.
 - Review data compatibility, authorization, file handling, asset licensing, accessibility, and failure recovery before enabling new behavior by default.
 - Keep changes scoped and document new settings, API behavior, and operator recovery steps.
-

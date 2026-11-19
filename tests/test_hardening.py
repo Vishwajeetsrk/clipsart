@@ -33,10 +33,31 @@ for bad in ("x,victim@example.com", "a<b>@example.com", 'a"b@example.com', "a;b@
 for good in ("jane.doe+news@example.com", "a_b-c@sub.example.co.uk"):
     check(f"{good!r} is still accepted", bool(auth.EMAIL_RE.match(good)))
 sent = []
-mailer.config.SMTP_HOST, mailer.config.MAIL_FROM = "smtp.invalid", "PeakCut <hello@example.com>"
+mailer.config.SMTP_HOST, mailer.config.MAIL_FROM = "smtp.invalid", "Clipsart <hello@example.com>"
 mailer.threading.Thread = lambda target, **k: type("T", (), {"start": lambda s: sent.append(1)})()
 check("a header with two addresses is never sent", mailer.send("x,victim@example.com", "s", "t", "i", "b", "https://x", "o") is False and not sent)
 check("a normal address is sent", mailer.send("jane@example.com", "s", "t", "i", "b", "https://x", "o") is True and sent)
+os.environ.update(PEAKCUT_TEST_MIGRATION="old", CLIPSART_TEST_MIGRATION="new")
+check("an explicit legacy setting keeps priority", mailer.config.env("PEAKCUT_TEST_MIGRATION") == "old")
+os.environ.pop("PEAKCUT_TEST_MIGRATION", None)
+check("new Clipsart settings map into legacy runtime names", mailer.config.env("PEAKCUT_TEST_MIGRATION") == "new")
+os.environ.pop("CLIPSART_TEST_MIGRATION", None)
+
+# Feedback email has its own support destination and uses plain text with a validated Reply-To.
+mailer.config.CONTACT_EMAIL = "support.learnifyai@gmail.com"
+mailer.config.SMTP_HOST, mailer.config.MAIL_FROM = "smtp.invalid", "Clipsart <hello@example.com>"
+message = []
+class FakeSMTP:
+    def __init__(self, *args, **kwargs): pass
+    def __enter__(self): return self
+    def __exit__(self, *args): pass
+    def starttls(self, **kwargs): pass
+    def send_message(self, msg): message.append(msg)
+mailer.smtplib.SMTP = FakeSMTP
+mailer.threading.Thread = lambda target, **k: type("T", (), {"start": lambda s: target()})()
+check("feedback goes to the configured support address", mailer.send_feedback("idea", "Add more caption styles", "jane@example.com", "/app", "editor") is True and message[-1]["To"] == "support.learnifyai@gmail.com")
+check("feedback keeps a safe reply address and the user's text", message[-1]["Reply-To"] == "jane@example.com" and "Add more caption styles" in message[-1].get_content())
+check("feedback returns false if SMTP is not configured", (setattr(mailer.config, "SMTP_HOST", "") is None) and mailer.send_feedback("bug", "The button failed") is False)
 
 # ---------------------------------------------------------------- Google sign-in
 class Resp:

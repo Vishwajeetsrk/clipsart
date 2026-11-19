@@ -1,16 +1,24 @@
-# PeakCut Editing Studio PRD
+# Clipsart Editing Studio PRD
 
 **Status:** In progress; product scope drafted and first implementation slice delivered  
 **Scope:** Better automatic short creation, a responsive real-time clip editor, and video-based thumbnail creation/editing/upload
 **First principle:** Preserve the existing application, user data, settings, jobs, and clips.
 
+## 0. Clipsart identity and feedback follow-up (2026-11-19)
+
+- Product, local UI, README, MIT notice, deployment guidance, and project-owned GitHub metadata use the Clipsart name.
+- Repository is `https://github.com/Vishwajeetsrk/clipsart`. Use this repository for clone, update, publish and release actions.
+- Retain existing `PEAKCUT_*` configuration names for backward compatibility and map new `CLIPSART_*` values over them without touching data paths or databases.
+- The in-app suggestion/problem report form saves through the existing feedback store. An optional SMTP notification targets `support.learnifyai@gmail.com`; do not tell users it was emailed when SMTP is unavailable.
+- Preserve historical commits and contributor attribution unless the repository owner separately confirms an explicit history rewrite immediately before force pushing.
+
 ## 1. Product goal
 
-Make PeakCut create polished vertical clips automatically, then let a person refine the clip in an editor that previews changes quickly and renders a final export on demand. Keep the current AI selection, live clipping, posting, and creator workspaces working as they do today.
+Make Clipsart create polished vertical clips automatically, then let a person refine the clip in an editor that previews changes quickly and renders a final export on demand. Keep the current AI selection, live clipping, posting, and creator workspaces working as they do today.
 
 ## 2. Current product baseline
 
-PeakCut already provides:
+Clipsart already provides:
 
 - AI or loudness-based automatic highlight selection for uploaded videos and supported video links.
 - Automatic transcription and word-timed captions.
@@ -89,7 +97,7 @@ The current editor is a form with the rendered video preview. It does not offer 
 - Scheduled posts remain visible in the existing post queue and can be edited or cancelled before posting. Retrying a failed post must not erase its intended schedule unless the user changes it.
 - Keep current automatic queue behavior as the default for **Add to automatic queue**. Existing scheduled entries and persisted `due_at` values remain valid.
 - Posting pause, account disconnect/deletion, account authorization, platform rate limits, and retry behavior continue to apply.
-- Do not imply that PeakCut controls post timing after a platform has accepted or rescheduled a post; show the actual state returned by the platform.
+- Do not imply that Clipsart controls post timing after a platform has accepted or rescheduled a post; show the actual state returned by the platform.
 
 ### P1: Thumbnail creation, editing, and upload
 
@@ -181,4 +189,3 @@ The current editor is a form with the rendered video preview. It does not offer 
 - Whether real-time means browser preview while scrubbing (recommended first) or collaborative multi-user live editing.
 - Whether music library ships empty with user imports first, or includes a curated, license-documented starter pack.
 - Whether editor preferences are per creator only, or also support named reusable global presets.
-

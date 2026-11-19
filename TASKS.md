@@ -1,4 +1,4 @@
-# PeakCut Editing Studio Task List
+# Clipsart Editing Studio Task List
 
 **Project status:** Editor, exact-time scheduling, caption/effect, music, image overlay, and video-based thumbnail features implemented.
 **Last updated:** 2026-11-19  
@@ -8,7 +8,7 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 
 ## Done
 
-- [x] Clone PeakCut and run the existing app locally.
+- [x] Clone Clipsart and run the existing app locally.
 - [x] Inspect the current clip editor, renderer, caption/layout choices, creator settings, and post queue.
 - [x] Write the initial product requirements document in `PRD.md`.
 - [x] Write preservation, compatibility, security, licensing, and validation rules in `GLOBAL_RULES.md`.
@@ -30,6 +30,23 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Render final versions to distinct filenames; failed re-renders keep the last good export available with a warning.
 - [x] Remove temporary preview and generated version files when the user deletes that clip.
 - [x] Run the full regression suite after preview and safe-version changes; all groups passed.
+
+## Clipsart rebrand and support feedback (2026-11-19)
+
+- [x] Confirm only the `Vishwajeetsrk/clipsart` GitHub remote is configured.
+- [x] Rebrand user-facing app text, documentation, mail templates, admin pages and project files from the previous project name to Clipsart.
+- [x] Replace the reused logo and favicon assets with a Clipsart play mark and orange/maroon wordmark.
+- [x] Rewrite the README with verified clone, launch, deployment, environment, editing, scheduling, thumbnail, feedback and test guidance.
+- [x] Replace the MIT copyright line with the Clipsart owner notice while retaining the MIT terms.
+- [x] Set the updater default and repository URL to `Vishwajeetsrk/clipsart`.
+- [x] Add safe `CLIPSART_*` to `PEAKCUT_*` configuration compatibility.
+- [x] Add an in-app suggestion/problem form using the existing saved feedback inbox.
+- [x] Add optional SMTP notifications for `support.learnifyai@gmail.com`; preserve saved feedback when SMTP is not configured.
+- [x] Add migration and feedback-email regression checks.
+- [x] Update the GitHub repository description.
+- [x] Run Python compilation, frontend JavaScript parsing, Docker Compose validation and the full isolated regression suite.
+- [ ] Push the rebrand and feedback changes to `Vishwajeetsrk/clipsart`.
+- [ ] Decide whether GitHub's generated Contributors list can remain; removing it requires rewriting published history.
 
 ## Thumbnail editor plan and implementation
 
