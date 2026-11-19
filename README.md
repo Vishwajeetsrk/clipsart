@@ -4,13 +4,15 @@
 
 ## Features
 
-- Find highlights in YouTube, Twitch and Kick videos, live streams, or uploaded video files with AI suggestions and speech transcription.
-- Make vertical clips with word-by-word captions in Bounce, Hype, Clean, Hormozi Gold and Beast Green styles. Choose blurred fill, zoom, centre crop or gameplay with facecam.
-- Hardware-accelerated rendering supporting NVIDIA NVENC, Apple Silicon VideoToolbox, Intel QSV, and AMD AMF for fast exports.
-- Refine clips with a trim timeline, hook and post text editor, dynamic audio ducking (music automatically dips under speech), music mix controls, image overlay and fast preview rendering.
-- Design a thumbnail from a video frame, add title text or a custom image, preview it, and save or restore the cover.
-- Connect YouTube, Instagram and TikTok, prepare post titles and descriptions, schedule a post for a chosen time, or use the existing automatic queue.
-- Organize creators, channels, clips, publishing rules and activity in separate workspaces.
+- **Multi-Genre AI Clipping**: Specialized clip-scout prompts tailored for **Gaming & Streaming**, **Podcast & Interview**, **Education & Explainer**, and **Business & Finance** content from YouTube, Twitch, Kick, or local video uploads.
+- **11 Professional Caption Styles**: Hormozi Gold, Beast Green, Cyberpunk, Karaoke Coral, Minimalist, Bounce, Hype, Clean, Neon Glow, Bold Box, and Cinematic with live visual previews.
+- **Auto-Emoji Detection**: Automatically places energetic animated emojis (💰, 🔥, 💀, 🏆, 🤯, 💡, etc.) next to punchline words.
+- **Hardware-Accelerated Exports**: Real-time encoder detection supporting NVIDIA NVENC (`h264_nvenc`), Apple Silicon VideoToolbox (`h264_videotoolbox`), Intel QuickSync (`h264_qsv`), and AMD AMF (`h264_amf`) with CPU fallback (`libx264`).
+- **Dynamic Audio Ducking & Fades**: Background music automatically dips by ~12 dB during speech using sidechain compression, with dead-air / silence detection.
+- **Google Calendar & Content Schedule**: 1-click Google Calendar web event creation plus live `.ics` calendar subscription feed (`/api/calendar/feed.ics`) for Google Calendar, Apple Calendar, and Outlook.
+- **Clip Editor & Thumbnail Studio**: Interactive trim slider, hook and copy editor, image overlay, audio volume balance, and frame-accurate thumbnail designer.
+- **1-Click Desktop Launchers**: Zero setup desktop scripts (`start-clipsart.bat` on Windows, `start-clipsart.sh` on macOS/Linux) with no mandatory accounts required.
+- **Publishing & Workspaces**: Direct posting to YouTube Shorts, Instagram Reels, and TikTok with scheduled queues and multi-creator workspaces.
 - Send suggestions and problem reports from the app. Reports are kept in the admin inbox; when SMTP is configured they are also emailed to `support.learnifyai@gmail.com`.
 - Support Clipsart's development through [Razorpay](https://razorpay.me/@learnifyaifree).
 - Use Gemini, OpenAI, Grok, Groq, OpenRouter, Claude, Ollama or an OpenAI-compatible model. Clipsart also selects moments by loudness when no AI key is set.
