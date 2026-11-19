@@ -22,9 +22,10 @@ from . import config, ctx
 _lock = threading.RLock()
 _states: dict = {}   # one-time values for the connect redirects: state -> (user id, when, platform)
 
-SECRET_KEYS = ("discord_webhook", "telegram_token")
+SECRET_KEYS = ("discord_webhook", "telegram_token", "notion_token")
 SETTING_DEFAULTS = {"discord_webhook": "", "telegram_token": "", "telegram_chat": "", "paused": False,
-                    "digest_hour": 8, "last_digest": "", "tour_done": False}
+                    "digest_hour": 8, "last_digest": "", "tour_done": False,
+                    "auto_drop_community": False, "notion_token": "", "notion_database_id": ""}
 
 YT_SCOPES = "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
 IG = "https://graph.instagram.com"
@@ -250,7 +251,7 @@ def save_settings(patch: dict) -> dict:
         for k, v in patch.items():
             if k not in SETTING_DEFAULTS:
                 continue
-            if k in ("paused", "tour_done"):
+            if k in ("paused", "tour_done", "auto_drop_community"):
                 v = bool(v)
             elif k == "digest_hour":
                 v = max(0, min(23, int(v)))
@@ -577,3 +578,54 @@ def tiktok_upload(acc, path: Path, caption: str, privacy: str = "public"):
         acc["detail"] = "Posts are private until this server's TikTok app is reviewed"
         _put(acc)
     return str(ids[0]) if ids else box["publish_id"], url
+
+
+def facebook_upload(acc, path: Path, caption: str, job_id: str = "") -> tuple:
+    """Uploads a Reel to a Facebook Page via Meta Graph API."""
+    token = acc.get("access_token", "")
+    page_id = acc.get("page_id") or acc.get("user_id") or "me"
+    r = _check(httpx.post(f"https://graph.facebook.com/v19.0/{page_id}/video_reels",
+                          data={"upload_phase": "start", "access_token": token},
+                          timeout=30), "Starting Facebook Reel session")
+    init_data = r.json()
+    video_id = init_data.get("video_id")
+    upload_url = init_data.get("upload_url")
+    if upload_url:
+        with path.open("rb") as f:
+            _check(httpx.post(upload_url, headers={"Authorization": f"OAuth {token}", "offset": "0", "file_size": str(path.stat().st_size)},
+                              content=f.read(), timeout=120), "Uploading Facebook Reel binary")
+    _check(httpx.post(f"https://graph.facebook.com/v19.0/{page_id}/video_reels",
+                      data={"upload_phase": "finish", "access_token": token, "video_id": video_id,
+                            "video_state": "PUBLISHED", "description": caption[:2200]},
+                      timeout=30), "Publishing Facebook Reel")
+    return video_id or "fb_reel", f"https://www.facebook.com/watch/?v={video_id}"
+
+
+def twitter_upload(acc, path: Path, text: str) -> tuple:
+    """Uploads a video to X / Twitter via chunked media upload and posts Tweet."""
+    token = acc.get("access_token", "")
+    size = path.stat().st_size
+    auth_header = {"Authorization": f"Bearer {token}"}
+    init_res = _check(httpx.post("https://upload.twitter.com/1.1/media/upload.json",
+                                 data={"command": "INIT", "total_bytes": size, "media_type": "video/mp4", "media_category": "tweet_video"},
+                                 headers=auth_header, timeout=30), "Initializing X media upload").json()
+    media_id = init_res["media_id_string"]
+    chunk_size = 4 * 1024 * 1024
+    with path.open("rb") as f:
+        segment_id = 0
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            _check(httpx.post("https://upload.twitter.com/1.1/media/upload.json",
+                              data={"command": "APPEND", "media_id": media_id, "segment_index": segment_id},
+                              files={"media": chunk}, headers=auth_header, timeout=60), f"Uploading X media segment {segment_id}")
+            segment_id += 1
+    _check(httpx.post("https://upload.twitter.com/1.1/media/upload.json",
+                      data={"command": "FINALIZE", "media_id": media_id},
+                      headers=auth_header, timeout=30), "Finalizing X media upload")
+    tweet_res = _check(httpx.post("https://api.twitter.com/2/tweets",
+                                  json={"text": text[:280], "media": {"media_ids": [media_id]}},
+                                  headers=auth_header, timeout=30), "Posting Tweet").json()
+    tweet_id = tweet_res.get("data", {}).get("id") or media_id
+    return tweet_id, f"https://twitter.com/i/status/{tweet_id}"

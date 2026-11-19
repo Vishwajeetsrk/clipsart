@@ -189,3 +189,39 @@ The current editor is a form with the rendered video preview. It does not offer 
 - Whether real-time means browser preview while scrubbing (recommended first) or collaborative multi-user live editing.
 - Whether music library ships empty with user imports first, or includes a curated, license-documented starter pack.
 - Whether editor preferences are per creator only, or also support named reusable global presets.
+
+## 11. Social Media & Workflow Integrations Expansion (2026-11-19)
+
+### 11.1 Goal
+Expand Clipsart's distribution and publishing capabilities beyond the initial core (YouTube Shorts, TikTok, Instagram Reels) to empower creators with community clip drops, cross-platform publishing, and workflow synchronization.
+
+### 11.2 Scope & Requirements
+1. **Discord & Telegram Direct MP4 Video Drops (P1 - Community Delivery)**:
+   - Upgrade existing text-only alert mechanisms in `studio/alerts.py` to support full video clip delivery (`send_clip_drop`).
+   - For **Discord**: When a clip is ready or explicitly shared, send a rich webhook payload with embed and multipart file attachment (`.mp4` under 25MB limit) or signed stream URL.
+   - For **Telegram**: Dispatch high-definition vertical video directly using Telegram Bot API `sendVideo` with title, hook, and hashtags in caption.
+   - Configurable per-creator or globally in Settings.
+
+2. **Facebook Reels & Pages Integration (P1 - Social Publishing)**:
+   - Leverage existing Meta App OAuth infrastructure with `pages_show_list,pages_read_engagement,pages_manage_posts`.
+   - Add `"facebook": "Facebook Reels"` to `PLATFORM_NAMES`.
+   - Implement direct publishing via Facebook Graph API video reels session endpoints (`/{page_id}/video_reels`).
+
+3. **X / Twitter Video Publishing (P1 - Social Publishing)**:
+   - Add `"twitter": "X (Twitter)"` to `PLATFORM_NAMES`.
+   - Support chunked media upload (`media/upload.json` INIT, APPEND, FINALIZE) and Tweet creation (`POST /2/tweets`) with video attachment.
+
+4. **Notion Content Kanban Sync (P2 - Workflow Productivity)**:
+   - Connect to creator's Notion database using official Notion API integration token.
+   - Automatically create/update a Kanban card in the creator's "Content Pipeline" board when a clip is generated, scheduled, or posted.
+   - Properties synced: Clip Title, Hook, Status ("Ready", "Scheduled", "Posted"), Video Duration, Score, and Target Channels.
+
+5. **Cloud Folder Auto-Export (P2 - Storage & Backup)**:
+   - Allow creators on desktop to designate a Google Drive or Dropbox sync directory (e.g. `G:\My Drive\Clipsart`).
+   - Automatically export rendered 1080p clips to the designated local cloud sync path on render completion.
+
+### 11.3 Engineering & Security Guardrails
+- **Zero Breaking Changes**: Existing YouTube, Instagram, TikTok, and Google Calendar workflows remain 100% untouched.
+- **Fail-Safe & Non-Blocking**: External API timeouts (Discord, Telegram, X, Notion) must never block local rendering or freeze queue progression.
+- **Secret Protection**: API tokens, bot keys, and client secrets remain strictly in secure user settings (`accounts.json` / `.env`) and are never exposed in logs or client-facing responses.
+- **Offline / Local Fallback**: When offline or if API credentials are not set, all video creation, editing, local downloads, and calendar feeds function flawlessly.

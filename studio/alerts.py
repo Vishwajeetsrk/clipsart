@@ -36,6 +36,61 @@ def send(text: str) -> list:
     return problems
 
 
+def send_clip_drop(video_path, title: str, hook: str = "", caption: str = "") -> list:
+    """Sends a finished MP4 video clip directly into Discord via webhook attachment and/or Telegram via sendVideo."""
+    from pathlib import Path
+    p = Path(video_path)
+    if not p.is_file():
+        return ["Clip file not found"]
+
+    s = accounts.settings()
+    problems = []
+
+    # 1. Discord Webhook
+    if s.get("discord_webhook"):
+        try:
+            desc = f"**{title}**" + (f"\n> *{hook}*" if hook else "") + (f"\n\n{caption}" if caption else "")
+            size = p.stat().st_size
+            if size <= 24 * 1024 * 1024:
+                with p.open("rb") as f:
+                    r = httpx.post(
+                        s["discord_webhook"],
+                        data={"content": f"🎬 **New Clip Dropped:**\n{desc[:1800]}"},
+                        files={"file": (p.name, f, "video/mp4")},
+                        timeout=60
+                    )
+                if r.status_code >= 400:
+                    problems.append(f"Discord upload said {r.status_code}")
+            else:
+                r = httpx.post(
+                    s["discord_webhook"],
+                    json={"content": f"🎬 **New Clip Ready ({round(size / 1e6, 1)} MB):**\n{desc[:1800]}"},
+                    timeout=15
+                )
+                if r.status_code >= 400:
+                    problems.append(f"Discord said {r.status_code}")
+        except Exception as e:  # noqa: BLE001
+            problems.append(f"Discord: {str(e)[:80]}")
+
+    # 2. Telegram Bot
+    if s.get("telegram_token") and s.get("telegram_chat"):
+        try:
+            tg_caption = f"🎬 {title}\n\n{hook}\n\n{caption}".strip()[:1020]
+            with p.open("rb") as f:
+                r = httpx.post(
+                    f"https://api.telegram.org/bot{s['telegram_token']}/sendVideo",
+                    data={"chat_id": s["telegram_chat"], "caption": tg_caption, "supports_streaming": "true"},
+                    files={"video": (p.name, f, "video/mp4")},
+                    timeout=90
+                )
+            if r.status_code >= 400:
+                problems.append(f"Telegram upload said {r.status_code}")
+        except Exception:  # noqa: BLE001
+            problems.append("Telegram: could not send video")
+
+    return problems
+
+
 def notify(text: str, kind: str = "live", link: str = ""):
     """Fire and forget, so a slow network never holds up recording or posting. Also shows in the app's bell."""
     try:

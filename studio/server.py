@@ -23,7 +23,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from . import admin as admins
 from . import account, load
-from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live, media, posting,
+from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live, media, notion, posting,
                profiles, render, safe, transcribe, usage)
 
 from . import tools as _tools  # noqa: E402
@@ -1883,6 +1883,63 @@ def test_alert():
     if problems:
         raise HTTPException(400, "; ".join(problems))
     return {"ok": True}
+
+
+@app.post("/api/alerts/drop/{jid}/{cid}")
+def alert_drop_clip(jid: str, cid: str):
+    """Manually dispatches an MP4 clip directly into Discord and/or Telegram."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip or clip.get("status") != "done":
+        raise HTTPException(404, "Clip not found or not rendered yet")
+    clip_path = Path(job["dir"]) / "clips" / clip["file"]
+    creator = creators.get(job.get("creator")) or dict(creators.DEFAULTS, name="clips")
+    title = clip.get("title") or clip.get("hook") or "New Clip"
+    caption = posting._caption(clip, creator)
+    problems = alerts.send_clip_drop(clip_path, title, clip.get("hook") or "", caption)
+    if problems:
+        raise HTTPException(400, "; ".join(problems))
+    return {"ok": True, "message": "Clip dropped to community channels!"}
+
+
+@app.post("/api/integrations/notion/sync/{jid}/{cid}")
+def notion_sync_clip(jid: str, cid: str):
+    """Creates a card in the user's Notion Kanban database for this clip."""
+    job = _job_or_404(jid)
+    clip = next((c for c in job["clips"] if c["id"] == cid), None)
+    if not clip:
+        raise HTTPException(404, "Clip not found")
+    try:
+        res = notion.sync_clip(
+            title=clip.get("title") or clip.get("hook") or "New Clip",
+            hook=clip.get("hook") or "",
+            status="Ready" if clip.get("status") == "done" else "In Progress",
+            duration=float(clip.get("end", 0)) - float(clip.get("start", 0)),
+            score=int(clip.get("score") or 0),
+            tags=clip.get("hashtags") or [],
+        )
+        return {"ok": True, "notion": res}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/integrations/notion/test")
+def notion_test():
+    """Verifies that the Notion token and database ID are valid."""
+    if not notion.configured():
+        raise HTTPException(400, "Configure your Notion Token and Database ID in Settings first.")
+    s = accounts.settings()
+    token = s.get("notion_token", "").strip()
+    db_id = s.get("notion_database_id", "").strip().replace("-", "")
+    try:
+        import httpx
+        r = httpx.get(f"{notion.NOTION_API}/databases/{db_id}", headers=notion._headers(token), timeout=15)
+        if r.status_code >= 400:
+            err = r.json().get("message", f"Notion error {r.status_code}")
+            raise HTTPException(400, f"Notion error: {err}")
+        return {"ok": True, "title": (r.json().get("title") or [{}])[0].get("plain_text", "Notion Database")}
+    except Exception as e:
+        raise HTTPException(400, str(e))
 
 
 # ================================================================ admin (only accounts marked as admin in the database)

@@ -141,6 +141,16 @@ def enqueue(job, clip, account_ids, now=False, scheduled_at=None, timezone=None)
 def on_clip_ready(job, clip):
     """Called once when a clip first finishes rendering."""
     c = creators.get(job["creator"])
+    s = accounts.settings()
+    if s.get("auto_drop_community") and alerts.configured() and clip.get("file"):
+        clip_path = Path(job["dir"]) / "clips" / clip["file"]
+        if clip_path.is_file():
+            creator_cfg = c or dict(creators.DEFAULTS, name="clips")
+            threading.Thread(
+                target=ctx.bind(alerts.send_clip_drop),
+                args=(clip_path, clip.get("title") or "New Clip", clip.get("hook") or "", _caption(clip, creator_cfg)),
+                daemon=True
+            ).start()
     if not c or not c["autopost"] or not c["accounts"]:
         return
     if clip.get("score", 0) < c["post_min_score"]:
@@ -174,6 +184,10 @@ def _post(p):
             rid, url = accounts.instagram_upload(acc, path, f"{title}\n\n{cap}", job["id"])
         elif acc["platform"] == "tiktok":
             rid, url = accounts.tiktok_upload(acc, path, f"{title}\n\n{cap}", creator["privacy"])
+        elif acc["platform"] == "facebook":
+            rid, url = accounts.facebook_upload(acc, path, f"{title}\n\n{cap}", job["id"])
+        elif acc["platform"] == "twitter":
+            rid, url = accounts.twitter_upload(acc, path, f"{title}\n\n{cap}")
         else:
             raise RuntimeError("That kind of account is no longer supported.")
         p.update(status="posted", posted_at=time.time(), remote_id=rid, url=url, error=None)

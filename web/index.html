@@ -2038,6 +2038,7 @@ const setTabs = () => [
   ...(S.status.accounts === false ? [] : [["profile", "Profile", "user", "Your name, email and how you sign in"],
                                           ["security", "Security", "lock", "Password and signing out"]]),
   ["apps", "Connected apps", "plug", "Where your clips get posted"],
+  ["alerts", "Alerts & Drops", "bell", "Discord, Telegram & Notion sync"],
   ...(S.status.user?.is_admin ? [["storage", "Storage", "folder", "Where videos and clips are kept"]] : [])];
 function aiHints() {
   const k = S.ai, sel = $("#ai_provider"); if (!k || !sel) return;
@@ -2157,9 +2158,27 @@ async function drawSettings() {
           ${card("tiktok", "TikTok", tt, "#000", "Post clips straight to your TikTok.")}
         </div></section>`;
     }
+    if (tab === "alerts") {
+      const s = await api("/api/settings");
+      body.innerHTML = `<section class="set-sec"><h2>Community Drops & Alerts</h2><p class="help">Send video clips and instant notifications to Discord channels and Telegram chats. When configured, you can drop actual MP4 clips straight to your community in 1 click or automatically.</p>
+        <div class="fields">
+          <label class="f">Discord webhook URL<input data-s="discord_webhook" placeholder="${s.discord_webhook ? "Saved. Paste a new one to replace" : "https://discord.com/api/webhooks/..."}" autocomplete="off" spellcheck="false"></label>
+          <label class="f">Telegram bot token<input data-s="telegram_token" type="password" placeholder="${s.telegram_token ? "Saved. Paste a new one to replace" : "123456:ABC-DEF..."}" autocomplete="off"></label>
+          <label class="f">Telegram chat ID<input data-s="telegram_chat" value="${esc(s.telegram_chat || "")}" placeholder="-1001234567890" autocomplete="off"></label>
+          <label class="sw span"><input type="checkbox" data-s="auto_drop_community" ${s.auto_drop_community ? "checked" : ""}><span>Auto-drop rendered clips to Discord & Telegram<small>Whenever a clip finishes, immediately upload and dispatch the video file to Discord and Telegram.</small></span></label>
+        </div>
+        <div class="row" style="margin-top:16px"><button class="btn primary" data-act="ssave">Save settings</button><button class="btn" data-act="testalert">${ic("bell")}Send test message</button></div>
+        <h2 style="margin-top:28px">Notion Kanban Integration</h2><p class="help">Sync created and scheduled clips into a Notion database board (Kanban pipeline) with video titles, hooks, tags, score, and status.</p>
+        <div class="fields">
+          <label class="f">Notion integration token<input data-s="notion_token" type="password" placeholder="${s.notion_token ? "Saved. Paste a new one to replace" : "secret_..."}" autocomplete="off"></label>
+          <label class="f">Notion database ID<input data-s="notion_database_id" value="${esc(s.notion_database_id || "")}" placeholder="32-character database ID" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="row" style="margin-top:16px"><button class="btn primary" data-act="ssave">Save settings</button><button class="btn" data-act="testnotion">${ic("link")}Test Notion connection</button></div>
+      </section>`;
+    }
   } catch (e) { body.innerHTML = `<div class="set-load">${esc(e.message)}</div>`; }
 }
-async function saveSettings() { const d = {}; $$("#sform [data-s]").forEach(i => d[i.dataset.s] = i.value); await send("/api/settings", d, "PUT"); }
+async function saveSettings() { const d = {}; $$("#sform [data-s]").forEach(i => d[i.dataset.s] = i.type === "checkbox" ? i.checked : i.value); await send("/api/settings", d, "PUT"); }
 
 /* ============================================================ clip editor */
 function openClip(jid, cid) { D.jid = jid; D.cid = cid; D.sig = ""; drawClipDlg(true); $("#clipdlg").showModal(); }
@@ -2228,8 +2247,10 @@ function drawClipDlg(full) {
           <p class="help" id="post-zone"></p>
           <div class="row" style="gap:8px"><button class="btn" data-act="postschedule">${ic("clock")}Schedule post</button><a class="btn ghost sm" href="/api/calendar/feed.ics" download="clipsart-calendar.ics" title="Sync scheduled posts to your Google Calendar, Apple Calendar or Outlook">${ic("clock")}Calendar Feed (.ics)</a></div>`
           : `<p class="help">No accounts connected yet. Connect one in Settings.</p>`}
-        <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line)">
-          ${c.status === "done" ? `<a class="btn" href="${m}${esc(c.file)}?download=1">${ic("down")}Download</a>` : ""}
+        <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px">
+          ${c.status === "done" ? `<a class="btn" href="${m}${esc(c.file)}?download=1">${ic("down")}Download</a>
+          <button class="btn ghost sm" data-act="communitydrop" title="Drop video directly to configured Discord or Telegram">${ic("send")}Drop MP4</button>
+          <button class="btn ghost sm" data-act="notionsync" title="Sync clip to Notion Kanban board">${ic("link")}Notion</button>` : ""}
           <button class="btn" data-act="copy" data-j="${j.id}" data-c="${esc(c.id)}">${ic("copy")}Copy post text</button></div>
       </div></div>`;
   } else if (D.sig !== sig) $("#stage").innerHTML = stage;
@@ -2674,6 +2695,40 @@ document.addEventListener("click", async e => {
       await send("/api/settings", {plans:p}, "PUT"); S.status = await api("/api/status"); toast("Plans saved", "ok"); return drawSettings();
     }
     if (a === "testalert") { await saveSettings(); await api("/api/alerts/test", {method:"POST"}); return toast("Test message sent. Check your phone.", "ok"); }
+    if (a === "testnotion") {
+      await saveSettings();
+      try {
+        const res = await api("/api/integrations/notion/test", {method:"POST"});
+        return toast(`Connected to Notion: "${res.title}"`, "ok");
+      } catch (err) {
+        return toast(err.message, "bad");
+      }
+    }
+    if (a === "communitydrop") {
+      b.disabled = true;
+      try {
+        await api(`/api/alerts/drop/${D.jid}/${D.cid}`, {method:"POST"});
+        toast("Clip dropped to your community channels!", "ok");
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally {
+        b.disabled = false;
+      }
+      return;
+    }
+    if (a === "notionsync") {
+      b.disabled = true;
+      try {
+        const res = await api(`/api/integrations/notion/sync/${D.jid}/${D.cid}`, {method:"POST"});
+        toast("Synced to Notion Kanban board!", "ok");
+        if (res.notion?.url) window.open(res.notion.url, "_blank");
+      } catch (err) {
+        toast(err.message, "bad");
+      } finally {
+        b.disabled = false;
+      }
+      return;
+    }
     if (a === "accremove") {
       if (!await ask("Disconnect this account?", "Posts still waiting for it will fail.", "Disconnect", true)) return;
       await api(`/api/accounts/${d.id}`, {method:"DELETE"}); await tick(); return drawSettings();
