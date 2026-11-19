@@ -45,7 +45,7 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Add migration and feedback-email regression checks.
 - [x] Update the GitHub repository description.
 - [x] Run Python compilation, frontend JavaScript parsing, Docker Compose validation and the full isolated regression suite.
-- [x] Push the rebrand and feedback changes to `Vishwajeetsrk/clipsart` (`c661730`).
+- [x] Push the rebrand and feedback changes to `main` on `Vishwajeetsrk/clipsart`.
 - [ ] Decide whether GitHub's generated Contributors list can remain; removing it requires rewriting published history.
 
 ## Thumbnail editor plan and implementation

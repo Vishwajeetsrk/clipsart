@@ -1360,11 +1360,13 @@ def send_feedback(request: Request, body: dict = Body(...)):
     u = _me(request)
     try:
         auth.throttle("feedback:" + u.id, 10, 3600)
-        report = feedback.submit(u.id, str(body.get("kind", "")), str(body.get("message", "")),
-                                 str(body.get("page", "")), str(body.get("context", "")))
+        kind = str(body.get("kind", ""))
+        message = str(body.get("message", ""))
+        page = str(body.get("page", ""))[:200]
+        context = str(body.get("context", ""))[:1000]
+        report = feedback.submit(u.id, kind, message, page, context)
         report["email_queued"] = mailer.send_feedback(
-            report["kind"], report["message"], u.email,
-            str(body.get("page", "")), str(body.get("context", "")))
+            kind if kind in feedback.KINDS else "other", message.strip(), u.email, page, context)
         return report
     except auth.AuthError:
         raise HTTPException(429, "You've sent a lot of messages in the last hour. Try again a bit later.")

@@ -85,6 +85,23 @@ user, _first, _next = google("S3", "b@example.com")
 check("a password-only account is still linked on its first Google sign-in",
       user.id == u2.id and auth.get_user(u2.id).google_sub == "S3")
 
+# The feedback route uses its validated inputs; the store returns only an id.
+from studio import feedback as feedback_module
+original_me, original_throttle = server._me, auth.throttle
+original_submit, original_send_feedback = feedback_module.submit, mailer.send_feedback
+routed = {}
+server._me = lambda _request: u1
+auth.throttle = lambda *args, **kwargs: None
+feedback_module.submit = lambda uid, kind, message, page, context: (routed.update({"uid": uid, "stored": (kind, message, page, context)}) or {"id": 73})
+mailer.send_feedback = lambda *args: (routed.update({"emailed": args}) or True)
+try:
+    report = server.send_feedback(None, {"kind": "idea", "message": "Add caption animation options", "page": "/app", "context": "editor"})
+    check("feedback API saves then queues the user's report", report == {"id": 73, "email_queued": True} and routed["uid"] == u1.id)
+    check("feedback API passes the saved content to support mail", routed["emailed"] == ("idea", "Add caption animation options", u1.email, "/app", "editor"))
+finally:
+    server._me, auth.throttle = original_me, original_throttle
+    feedback_module.submit, mailer.send_feedback = original_submit, original_send_feedback
+
 # ---------------------------------------------------------------- text from videos going into prompts
 seen = []
 brain.ask_ai = lambda prompt, purpose="", **kw: (seen.append(prompt) or ([{"hook": "h", "title": "t", "description": "d"}], "m", 1))
@@ -97,3 +114,4 @@ check("a game typed by the creator cannot close the prompt's own tags", "<" not 
 check("the game a creator did type is still named", "Grand Theft Auto VI" in brain._game_rules("gta 6"), True)
 
 sys.exit(1 if fails else 0)
+
