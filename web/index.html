@@ -1397,7 +1397,16 @@ function drawAdd(variant) {
   drawAtt();
 }
 const LAYOUT_SHORT = {blur:"Blurred fill", zoom:"Zoomed in", crop:"Fill screen", gameplay:"Gameplay + facecam"};
-const CAP_LOOK = {bounce:{font:"'Archivo Black'", hl:"#FFFF00", up:true}, hype:{font:"Anton", hl:"#FF3C3C", up:true}, clean:{font:"Poppins", hl:"#6BD7FF", up:false, w:800}};
+const CAP_LOOK = {
+  bounce: {font:"'Archivo Black'", hl:"#FFFF00", up:true},
+  hype: {font:"Anton", hl:"#FF3C3C", up:true},
+  clean: {font:"Poppins", hl:"#6BD7FF", up:false, w:800},
+  neon: {font:"'Archivo Black'", hl:"#00F0FF", up:true},
+  boxed: {font:"'Archivo Black'", hl:"#111111", up:true},
+  cinema: {font:"Poppins", hl:"#FFC86B", up:false, w:800},
+  hormozi: {font:"'Archivo Black'", hl:"#FFE500", up:true, w:900},
+  beast: {font:"'Poppins ExtraBold'", hl:"#00FF66", up:true, w:900}
+};
 function capPrev(k) {
   const s = CAP_LOOK[k] || {font:"inherit", hl:"#FF8B33", up:true};
   const t = s.up ? ["CLIP", "THIS"] : ["Clip", "this"];
@@ -2156,7 +2165,7 @@ function drawClipDlg(full) {
         <label class="sw"><input type="checkbox" data-f="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
         <div class="two"><label class="f">Caption style<select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
           <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
-        <p class="help">Caption examples: <b>CLIP THIS</b> · <b>Bounce</b> · <b>Hype</b> · <b>Clean</b> · Neon Glow · Bold Box · Cinematic</p>
+        <p class="help">Caption styles: <b>Bounce</b> · <b>Hype</b> · <b>Clean</b> · <b>Hormozi Gold</b> · <b>Beast Green</b> · Neon Glow · Bold Box · Cinematic</p>
         <div class="two"><label class="f">Video effect<select data-f="effect">${opts({none:"Original", warm:"Warm", vivid:"Vivid", mono:"Black & white", vintage:"Vintage"}, c.effect || "none")}</select></label>
           <label class="f">Animation<select data-f="animation">${opts({none:"None", pulse:"Slow pulse"}, c.animation || "none")}</select></label></div>
         <h3>Image overlay</h3>

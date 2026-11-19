@@ -338,3 +338,40 @@ def loudness_per_second(audio: np.ndarray) -> np.ndarray:
     x = audio[: n * 16000].reshape(n, 16000).astype(np.float32) / 32768.0
     rms = np.sqrt((x ** 2).mean(axis=1) + 1e-10)
     return (20 * np.log10(rms)).astype(np.float32)
+
+
+def detect_silences(audio: np.ndarray, threshold_db: float = -32.0, min_duration: float = 0.6,
+                    sample_rate: int = 16000) -> list:
+    """Detect pauses/silences in audio to assist with dead-air removal and pacing optimization.
+    Returns a list of dicts: [{'start': float, 'end': float, 'duration': float}, ...]
+    """
+    if len(audio) == 0:
+        return []
+    chunk_size = int(sample_rate * 0.1)  # 100ms resolution
+    n_chunks = len(audio) // chunk_size
+    if n_chunks == 0:
+        return []
+    x = audio[: n_chunks * chunk_size].reshape(n_chunks, chunk_size).astype(np.float32) / 32768.0
+    rms = np.sqrt((x ** 2).mean(axis=1) + 1e-10)
+    db = 20 * np.log10(rms)
+    is_silent = db < threshold_db
+    silences = []
+    in_silence = False
+    start_idx = 0
+    for i, silent in enumerate(is_silent):
+        if silent and not in_silence:
+            in_silence = True
+            start_idx = i
+        elif not silent and in_silence:
+            in_silence = False
+            dur = (i - start_idx) * 0.1
+            if dur >= min_duration:
+                silences.append({"start": round(start_idx * 0.1, 2), "end": round(i * 0.1, 2),
+                                 "duration": round(dur, 2)})
+    if in_silence:
+        dur = (n_chunks - start_idx) * 0.1
+        if dur >= min_duration:
+            silences.append({"start": round(start_idx * 0.1, 2), "end": round(n_chunks * 0.1, 2),
+                             "duration": round(dur, 2)})
+    return silences
+

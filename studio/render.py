@@ -2,6 +2,7 @@
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -24,6 +25,10 @@ STYLES = {
               "strong": "FFFFFF", "outline": 3, "pop": 108, "upper": True, "per": 3},
     "cinema": {"label": "Cinematic", "font": "Poppins ExtraBold", "size": 86, "base": "FFFFFF", "active": "FFC86B",
                "strong": "FFC86B", "outline": 3, "pop": 100, "upper": False, "per": 5},
+    "hormozi": {"label": "Hormozi Gold", "font": "Archivo Black", "size": 136, "base": "FFFFFF", "active": "00E5FF",
+                "strong": "00F0FF", "outline": 9, "pop": 124, "upper": True, "per": 2},
+    "beast": {"label": "Beast Green", "font": "Poppins ExtraBold", "size": 132, "base": "FFFFFF", "active": "66FF00",
+              "strong": "00FFFF", "outline": 8, "pop": 120, "upper": True, "per": 2},
 }
 HOOK = {"font": "Poppins ExtraBold", "size": 96, "ink": "14100E", "box": "FFFFFF", "pad_x": 36, "pad_y": 22, "radius": 26,
         "max_w": 900}
@@ -270,6 +275,10 @@ def _hook_y(layout, hook_y, facecam=None):
 
 
 _qsv_ok = None
+_nvenc_ok = None
+_vt_ok = None
+_amf_ok = None
+_mf_ok = None
 RENDER_SECONDS = 600      # one clip's video encode; far beyond normal, so a frozen encoder is stopped, not waited on
 
 
@@ -299,15 +308,18 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
                           music_volume=clip.get("music_volume", 0.25), preview_size=preview_size,
                           overlay_path=overlay, overlay_scale=clip.get("overlay_scale", 0.24),
                           overlay_x=clip.get("overlay_x", 0.78), overlay_y=clip.get("overlay_y", 0.82),
-                          effect=clip.get("effect", "none"), animation=clip.get("animation", "none"))
+                          effect=clip.get("effect", "none"), animation=clip.get("animation", "none"),
+                          ducking=clip.get("ducking", True), fade_in=clip.get("fade_in", 0.35),
+                          fade_out=clip.get("fade_out", 0.45))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
 def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None,
                music_path=None, source_volume=1.0, music_volume=0.25, preview_size=None, overlay_path=None,
-               overlay_scale=0.24, overlay_x=0.78, overlay_y=0.82, effect="none", animation="none") -> dict:
-    global _qsv_ok
+               overlay_scale=0.24, overlay_x=0.78, overlay_y=0.82, effect="none", animation="none",
+               ducking=True, fade_in=0.35, fade_out=0.45) -> dict:
+    global _qsv_ok, _nvenc_ok, _vt_ok, _amf_ok, _mf_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
     for f in config.FONTS_DIR.glob("*.ttf"):
@@ -349,11 +361,22 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     if music_path and music_path.is_file():
         source_volume = max(0.0, min(2.0, float(source_volume)))
         music_volume = max(0.0, min(1.5, float(music_volume)))
-        fc += (f";[0:a:0]volume={source_volume}[sourcea];"
-               f"[1:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
-               f"afade=t=in:st=0:d=0.35,afade=t=out:st={max(0.0, duration - 0.45):.3f}:d=0.45[music];"
-               "[sourcea][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,"
-               "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
+        fin = max(0.0, min(5.0, float(fade_in if fade_in is not None else 0.35)))
+        fout = max(0.0, min(5.0, float(fade_out if fade_out is not None else 0.45)))
+        fout_st = max(0.0, duration - fout)
+        if ducking:
+            fc += (f";[0:a:0]volume={source_volume},asplit=2[sourcea][sc];"
+                   f"[1:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
+                   f"afade=t=in:st=0:d={fin:.3f},afade=t=out:st={fout_st:.3f}:d={fout:.3f}[musicraw];"
+                   f"[musicraw][sc]sidechaincompress=threshold=0.08:ratio=4:attack=20:release=300[ducked];"
+                   "[sourcea][ducked]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,"
+                   "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
+        else:
+            fc += (f";[0:a:0]volume={source_volume}[sourcea];"
+                   f"[1:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
+                   f"afade=t=in:st=0:d={fin:.3f},afade=t=out:st={fout_st:.3f}:d={fout:.3f}[music];"
+                   "[sourcea][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,"
+                   "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
         base += ["-stream_loop", "-1", "-i", str(music_path), "-filter_complex", fc, "-map", vmap, "-map", "[a]"]
     else:
         fc += ";[0:a:0]volume=" + str(max(0.0, min(2.0, float(source_volume)))) + ",loudnorm=I=-14:TP=-1.5:LRA=11[a]"
@@ -362,20 +385,45 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     encoders = []
     if preview_size:
         encoders.append(("preview", ["yuv420p", "-c:v", "libx264", "-crf", "30", "-preset", "ultrafast"]))
-    elif _qsv_ok is not False:
-        encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "23", "-preset", "fast"]))
+    else:
+        if _nvenc_ok is not False:
+            encoders.append(("nvenc", ["yuv420p", "-c:v", "h264_nvenc", "-preset", "p5", "-tune", "hq", "-b:v", "6M"]))
+        if _vt_ok is not False and sys.platform == "darwin":
+            encoders.append(("videotoolbox", ["yuv420p", "-c:v", "h264_videotoolbox", "-b:v", "6M"]))
+        if _qsv_ok is not False:
+            encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "23", "-preset", "fast"]))
+        if _amf_ok is not False:
+            encoders.append(("amf", ["yuv420p", "-c:v", "h264_amf", "-b:v", "6M", "-quality", "speed"]))
+        if _mf_ok is not False and sys.platform == "win32":
+            encoders.append(("mf", ["yuv420p", "-c:v", "h264_mf", "-b:v", "6M"]))
     encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"]))
     err = None
     for label, enc in encoders:
         p = subprocess.run(base + enc + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
                            encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=RENDER_SECONDS)
         if p.returncode == 0:
-            if label == "qsv":
+            if label == "nvenc":
+                _nvenc_ok = True
+            elif label == "videotoolbox":
+                _vt_ok = True
+            elif label == "qsv":
                 _qsv_ok = True
+            elif label == "amf":
+                _amf_ok = True
+            elif label == "mf":
+                _mf_ok = True
             break
         err = p.stderr[-1200:]
-        if label == "qsv":
+        if label == "nvenc":
+            _nvenc_ok = False
+        elif label == "videotoolbox":
+            _vt_ok = False
+        elif label == "qsv":
             _qsv_ok = False
+        elif label == "amf":
+            _amf_ok = False
+        elif label == "mf":
+            _mf_ok = False
     else:
         raise RuntimeError(f"Render failed: {err}")
     cover_t = min(1.2, (end - start) / 2)

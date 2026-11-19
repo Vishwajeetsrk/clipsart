@@ -5,8 +5,9 @@
 ## Features
 
 - Find highlights in YouTube, Twitch and Kick videos, live streams, or uploaded video files with AI suggestions and speech transcription.
-- Make vertical clips with word-by-word captions in Bounce, Hype and Clean styles. Choose blurred fill, zoom, centre crop or gameplay with facecam.
-- Refine clips with a trim timeline, hook and post text editor, music mix controls, image overlay and fast preview rendering.
+- Make vertical clips with word-by-word captions in Bounce, Hype, Clean, Hormozi Gold and Beast Green styles. Choose blurred fill, zoom, centre crop or gameplay with facecam.
+- Hardware-accelerated rendering supporting NVIDIA NVENC, Apple Silicon VideoToolbox, Intel QSV, and AMD AMF for fast exports.
+- Refine clips with a trim timeline, hook and post text editor, dynamic audio ducking (music automatically dips under speech), music mix controls, image overlay and fast preview rendering.
 - Design a thumbnail from a video frame, add title text or a custom image, preview it, and save or restore the cover.
 - Connect YouTube, Instagram and TikTok, prepare post titles and descriptions, schedule a post for a chosen time, or use the existing automatic queue.
 - Organize creators, channels, clips, publishing rules and activity in separate workspaces.
@@ -20,15 +21,14 @@ You need Python 3.10 or newer and `ffmpeg`. Install ffmpeg with `winget install 
 
 Clone only your Clipsart repository into a short, permanent folder. Keep it out of temporary directories and assistant workspaces; on Windows, a deeply nested folder can prevent the speech model from loading.
 
-Windows PowerShell:
+Windows:
+
+Double-click `start-clipsart.bat` (or in PowerShell):
 
 ```powershell
 git clone https://github.com/Vishwajeetsrk/clipsart.git C:\Clipsart
 cd C:\Clipsart
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python -m studio.server
+.\start-clipsart.bat
 ```
 
 macOS or Linux:
@@ -36,10 +36,7 @@ macOS or Linux:
 ```bash
 git clone https://github.com/Vishwajeetsrk/clipsart.git ~/Clipsart
 cd ~/Clipsart
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m studio.server
+chmod +x start-clipsart.sh && ./start-clipsart.sh
 ```
 
 Open <http://127.0.0.1:8765>, go to **Settings → AI**, and save your model key. On a personal computer sign in is off by default. Do not expose the app publicly until you enable accounts and configure HTTPS.

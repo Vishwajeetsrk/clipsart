@@ -97,7 +97,11 @@ Status key: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Add immediate visual preview for text, caption, and layout changes.
 - [x] Add local track import, playback preview, rights confirmation, attribution/source metadata, and independent volume controls.
 - [x] Mix optional music with ffmpeg, add fades, limit peaks, and retain source audio when music is off.
-- [ ] Add optional speech ducking and user-adjustable fade durations.
+- [x] Add optional speech ducking and user-adjustable fade durations.
+- [x] Add multi-GPU hardware acceleration (NVIDIA NVENC, Apple Silicon VideoToolbox, Intel QSV, AMD AMF) with CPU fallback.
+- [x] Add high-retention caption styles: Hormozi Gold and Beast Green.
+- [x] Add 1-click launch scripts for Windows (start-clipsart.bat) and macOS/Linux (start-clipsart.sh).
+- [x] Add silence and dead-air detection utility for pacing optimization.
 - [x] Keep the last valid export downloadable after a failed re-render.
 
 ### Phase 3 — automatic profiles and posting UI
