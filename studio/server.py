@@ -1655,6 +1655,28 @@ def list_accounts():
     return accounts.list_accounts()
 
 
+@app.get("/api/accounts/removed")
+def list_removed_accounts():
+    return accounts.list_removed_accounts()
+
+
+@app.post("/api/accounts/{aid}/restore")
+def restore_account(aid: str):
+    try:
+        acc = accounts.restore_account(aid)
+        return {"ok": True, "account": acc}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/accounts/{aid}/test")
+def test_account(aid: str):
+    try:
+        return accounts.test_account(aid)
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
 @app.delete("/api/accounts/{aid}")
 def remove_account(aid: str):
     accounts.remove(aid)

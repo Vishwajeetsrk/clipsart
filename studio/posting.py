@@ -215,6 +215,10 @@ def _post(p):
             rid, url = accounts.twitter_upload(acc, path, f"{title}\n\n{cap}")
         elif acc["platform"] == "linkedin":
             rid, url = accounts.linkedin_upload(acc, path, f"{title}\n\n{cap}", title)
+        elif acc["platform"] == "pinterest":
+            rid, url = accounts.pinterest_upload(acc, path, title, f"{title}\n\n{cap}", acc.get("board_id", ""))
+        elif acc["platform"] == "threads":
+            rid, url = accounts.threads_upload(acc, path, f"{title}\n\n{cap}")
         else:
             raise RuntimeError("That kind of account is no longer supported.")
         p.update(status="posted", posted_at=time.time(), remote_id=rid, url=url, error=None)

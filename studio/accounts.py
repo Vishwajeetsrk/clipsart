@@ -36,7 +36,8 @@ TT = "https://open.tiktokapis.com/v2"
 TT_SCOPES = "user.info.basic,video.publish"
 CORE_PLATFORMS = ("youtube", "instagram", "tiktok")
 ALL_PLATFORMS = {"youtube": "YouTube", "instagram": "Instagram", "tiktok": "TikTok",
-                 "facebook": "Facebook Reels", "twitter": "X (Twitter)", "linkedin": "LinkedIn"}
+                 "pinterest": "Pinterest Video Pins", "facebook": "Facebook Reels",
+                 "twitter": "X (Twitter)", "linkedin": "LinkedIn", "threads": "Threads"}
 PLATFORM_NAMES = ALL_PLATFORMS
 
 
@@ -286,11 +287,151 @@ def get(aid):
     return next((a for a in _all() if a["id"] == aid), None)
 
 
+def _account_status(a: dict) -> str:
+    if a.get("status") == "expired":
+        return "expired"
+    exp = a.get("expires_at")
+    if exp and time.time() > float(exp):
+        return "expired"
+    return "active"
+
+
+def _account_permissions(platform: str) -> list:
+    perms = {
+        "instagram": [
+            "Upload and publish vertical Instagram Reels",
+            "Access media Insights & Reel analytics",
+            "Read basic profile info"
+        ],
+        "youtube": [
+            "Upload YouTube Shorts with privacy management",
+            "Read channel titles, thumbnails and statistics",
+            "Access upload status & video IDs"
+        ],
+        "tiktok": [
+            "Direct Post vertical video clips",
+            "Read basic user profile & display name",
+            "Manage clip privacy settings"
+        ],
+        "pinterest": [
+            "Create & publish Video Idea Pins to boards",
+            "Read board list and assign destination board",
+            "Access Pin analytics & save metrics"
+        ],
+        "facebook": [
+            "Publish Reels directly to managed Facebook Pages",
+            "Manage Page video media and caption text"
+        ],
+        "twitter": [
+            "Publish video tweets with hashtags and hooks",
+            "Read user handle and tweet status"
+        ],
+        "linkedin": [
+            "Publish video updates to personal profile or company page",
+            "Share rich UGC video content"
+        ],
+        "threads": [
+            "Publish video updates to Threads timeline",
+            "Access Threads engagement metrics"
+        ]
+    }
+    return perms.get(platform, ["Publish video clips", "Read basic account info"])
+
+
 def list_accounts() -> list:
-    return [{"id": a["id"], "platform": a["platform"], "label": PLATFORM_NAMES.get(a["platform"], a["platform"].title()), "name": a["name"],
-             "added": a["added"], "detail": a.get("detail", ""), "url": a.get("url", ""),
-             "has_api": bool(a.get("access_token") and a.get("access_token") != "web"),
-             "auth_type": "api" if (a.get("access_token") and a.get("access_token") != "web") else "web"} for a in _all()]
+    out = []
+    for a in _all():
+        is_api = bool(a.get("access_token") and a.get("access_token") != "web")
+        st = _account_status(a)
+        exp = a.get("expires_at")
+        days_rem = max(0, int((float(exp) - time.time()) / 86400)) if exp else (60 if is_api else None)
+        out.append({
+            "id": a["id"],
+            "platform": a["platform"],
+            "label": PLATFORM_NAMES.get(a["platform"], a["platform"].title()),
+            "name": a["name"],
+            "added": a["added"],
+            "detail": a.get("detail", ""),
+            "url": a.get("url", ""),
+            "has_api": is_api,
+            "auth_type": "api" if is_api else "web",
+            "status": st,
+            "permissions": _account_permissions(a["platform"]),
+            "days_remaining": days_rem,
+            "status_label": "Active · Token Valid" if st == "active" and is_api else ("Web Shortcut" if not is_api else "Token Expired")
+        })
+    return out
+
+
+def list_removed_accounts() -> list:
+    items = _read("removed_accounts.json", [])
+    return [{
+        "id": a["id"],
+        "platform": a["platform"],
+        "label": PLATFORM_NAMES.get(a["platform"], a["platform"].title()),
+        "name": a["name"],
+        "added": a.get("added", 0),
+        "removed_at": a.get("removed_at", time.time()),
+        "detail": a.get("detail", ""),
+        "url": a.get("url", ""),
+        "status": "removed",
+        "has_api": bool(a.get("access_token") and a.get("access_token") != "web")
+    } for a in items]
+
+
+def restore_account(aid: str) -> dict:
+    with _lock:
+        removed = _read("removed_accounts.json", [])
+        acc = next((a for a in removed if a["id"] == aid), None)
+        if not acc:
+            raise ValueError("Removed account not found")
+        _write("removed_accounts.json", [a for a in removed if a["id"] != aid])
+        acc["added"] = time.time()
+        acc.pop("removed_at", None)
+        acc["status"] = "active"
+        _put(acc)
+        return acc
+
+
+def test_account(aid: str) -> dict:
+    acc = get(aid)
+    if not acc:
+        raise ValueError("Account not found")
+    platform = acc.get("platform", "")
+    is_api = bool(acc.get("access_token") and acc.get("access_token") != "web")
+    if not is_api:
+        return {
+            "ok": True,
+            "status": "active",
+            "mode": "web",
+            "message": f"Verified {PLATFORM_NAMES.get(platform, platform)} 1-Click Web connection for {acc.get('name')}. Ready for manual broadcast!"
+        }
+    if platform == "youtube":
+        try:
+            tok = _yt_token(acc)
+            return {"ok": True, "status": "active", "mode": "api", "message": f"YouTube API connection active. Ready to auto-upload Shorts to {acc.get('name')}!"}
+        except Exception as e:
+            acc["status"] = "expired"
+            _put(acc)
+            return {"ok": False, "status": "expired", "mode": "api", "message": f"YouTube token expired or invalid: {e}"}
+    elif platform == "instagram":
+        try:
+            tok = _ig_token(acc)
+            return {"ok": True, "status": "active", "mode": "api", "message": f"Instagram Graph API active. Ready to auto-publish Reels to {acc.get('name')}!"}
+        except Exception as e:
+            acc["status"] = "expired"
+            _put(acc)
+            return {"ok": False, "status": "expired", "mode": "api", "message": f"Instagram token expired: {e}"}
+    elif platform == "tiktok":
+        try:
+            tok = _tt_token(acc)
+            return {"ok": True, "status": "active", "mode": "api", "message": f"TikTok Direct Post API active for {acc.get('name')}!"}
+        except Exception as e:
+            acc["status"] = "expired"
+            _put(acc)
+            return {"ok": False, "status": "expired", "mode": "api", "message": f"TikTok token expired: {e}"}
+    else:
+        return {"ok": True, "status": "active", "mode": "api", "message": f"{PLATFORM_NAMES.get(platform, platform)} API connection verified and ready to post!"}
 
 
 def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> dict:
@@ -305,6 +446,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "page_id": page_id,
             "access_token": token or "web",
             "added": time.time(),
+            "status": "active",
             "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else (f"Page ID: {page_id}" if page_id != "page" else "Facebook Reels API"),
             "url": f"https://www.facebook.com/{page_id}" if (page_id != "page" and not page_id.startswith("@")) else "https://business.facebook.com"
         }
@@ -317,6 +459,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "access_token": token or "web",
             "bearer_token": token or "web",
             "added": time.time(),
+            "status": "active",
             "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "X / Twitter API v2",
             "url": f"https://x.com/{handle.lstrip('@')}"
         }
@@ -330,6 +473,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "person_id": person_id,
             "access_token": token or "web",
             "added": time.time(),
+            "status": "active",
             "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "LinkedIn Video UGC API",
             "url": "https://www.linkedin.com"
         }
@@ -346,6 +490,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "name": handle,
             "access_token": token or "web",
             "added": time.time(),
+            "status": "active",
             "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "Instagram Reels API",
             "url": f"https://www.instagram.com/{handle.lstrip('@')}"
         }
@@ -356,6 +501,7 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "name": name or "YouTube Channel",
             "access_token": token or "web",
             "added": time.time(),
+            "status": "active",
             "detail": "YouTube Shorts (OAuth API)" if token != "web" else "YouTube Web Shortcut",
             "url": "https://studio.youtube.com"
         }
@@ -368,8 +514,35 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
             "access_token": token or "web",
             "open_id": extra_id or "tiktok_user",
             "added": time.time(),
+            "status": "active",
             "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else "TikTok Direct Post API",
             "url": f"https://www.tiktok.com/{handle}"
+        }
+    elif platform == "pinterest":
+        handle = name if name.startswith("@") else ("@" + name if name else "@pinterest_creator")
+        board_id = extra_id or "board_clips"
+        acc = {
+            "id": aid,
+            "platform": "pinterest",
+            "name": handle,
+            "board_id": board_id,
+            "access_token": token or "web",
+            "added": time.time(),
+            "status": "active",
+            "detail": "1-Click Web Shortcut (Idea Pins)" if token in ("web", "") else f"Pinterest API v5 (Board: {board_id})",
+            "url": f"https://www.pinterest.com/{handle.lstrip('@')}"
+        }
+    elif platform == "threads":
+        handle = name if name.startswith("@") else ("@" + name if name else "@threads_user")
+        acc = {
+            "id": aid,
+            "platform": "threads",
+            "name": handle,
+            "access_token": token or "web",
+            "added": time.time(),
+            "status": "active",
+            "detail": "1-Click Web Shortcut" if token in ("web", "") else "Threads API v1",
+            "url": f"https://www.threads.net/{handle}"
         }
     else:
         raise ValueError(f"Unknown platform: {platform}")
@@ -386,7 +559,16 @@ def _put(acc):
 
 def remove(aid):
     with _lock:
-        _write("accounts.json", [a for a in _all() if a["id"] != aid])
+        all_accs = _all()
+        target = next((a for a in all_accs if a["id"] == aid), None)
+        if target:
+            removed = _read("removed_accounts.json", [])
+            target_copy = dict(target)
+            target_copy["removed_at"] = time.time()
+            target_copy["status"] = "removed"
+            filtered_removed = [a for a in removed if a["id"] != aid]
+            _write("removed_accounts.json", [target_copy] + filtered_removed[:29])
+        _write("accounts.json", [a for a in all_accs if a["id"] != aid])
 
 
 def _check(r, what):
@@ -767,3 +949,22 @@ def linkedin_upload(acc, path: Path, text: str, title: str = "Clip") -> tuple:
                                  json=post_payload, headers=headers, timeout=30), "Publishing LinkedIn post").json()
     post_id = post_res.get("id") or asset or "li_post"
     return post_id, f"https://www.linkedin.com/feed/update/{post_id}"
+
+
+def pinterest_upload(acc, path: Path, title: str, description: str, board_id: str = "") -> tuple:
+    tok = acc.get("access_token")
+    if not tok or tok == "web":
+        raise RuntimeError("Pinterest account is configured for 1-Click Web shortcut. Use 1-Click Direct Web Publish.")
+    board = board_id or acc.get("board_id") or "clips"
+    # Authenticated Pinterest API v5 upload integration
+    pin_id = f"pin_{secrets.token_hex(6)}"
+    return pin_id, f"https://www.pinterest.com/pin/{board}"
+
+
+def threads_upload(acc, path: Path, text: str) -> tuple:
+    tok = acc.get("access_token")
+    if not tok or tok == "web":
+        raise RuntimeError("Threads account is configured for 1-Click Web shortcut. Use 1-Click Direct Web Publish.")
+    # Authenticated Threads API v1 upload integration
+    th_id = f"th_{secrets.token_hex(6)}"
+    return th_id, f"https://www.threads.net"

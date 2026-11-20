@@ -130,6 +130,47 @@ def main():
         res_cloud = client.post("/api/cloud-sync/test")
         check("api/cloud-sync/test responds 200", res_cloud.status_code == 200 and "writable" in res_cloud.json().get("message", "").lower())
 
+        # -------------------------------------------------------------
+        # 7. Connected Apps (Instagram, Pinterest, Threads, Active/Expired/Removed)
+        # -------------------------------------------------------------
+        from studio import accounts
+        # Direct Connect Pinterest
+        pin_res = client.post("/api/accounts/direct", json={"platform": "pinterest", "name": "Pinterest-IG", "token": "web", "extra_id": "board_art"})
+        check("api/accounts/direct connects Pinterest", pin_res.status_code == 200 and pin_res.json().get("ok"))
+        pin_id = pin_res.json()["account"]["id"]
+
+        # Direct Connect Threads
+        th_res = client.post("/api/accounts/direct", json={"platform": "threads", "name": "@clipsart_hq", "token": "web"})
+        check("api/accounts/direct connects Threads", th_res.status_code == 200 and th_res.json().get("ok"))
+        th_id = th_res.json()["account"]["id"]
+
+        # List accounts with status and permissions
+        accs_res = client.get("/api/accounts")
+        check("api/accounts lists accounts", accs_res.status_code == 200)
+        acc_list = accs_res.json()
+        pin_acc = next((a for a in acc_list if a["id"] == pin_id), None)
+        check("pinterest account has permissions list", pin_acc and len(pin_acc.get("permissions", [])) >= 2)
+        check("account has active status", pin_acc and pin_acc.get("status") == "active")
+
+        # Test account connection endpoint
+        test_res = client.post(f"/api/accounts/{pin_id}/test")
+        check("api/accounts/{id}/test verifies connection", test_res.status_code == 200 and test_res.json().get("ok"))
+
+        # Remove account (moves to removed list)
+        del_res = client.delete(f"/api/accounts/{pin_id}")
+        check("api/accounts/{id} removes account", del_res.status_code == 200 and del_res.json().get("ok"))
+
+        # Verify in removed accounts list
+        rem_res = client.get("/api/accounts/removed")
+        check("api/accounts/removed returns removed account", rem_res.status_code == 200 and any(a["id"] == pin_id for a in rem_res.json()))
+
+        # Restore account
+        rest_res = client.post(f"/api/accounts/{pin_id}/restore")
+        check("api/accounts/{id}/restore restores account to active", rest_res.status_code == 200 and rest_res.json().get("ok"))
+
+        accs_res2 = client.get("/api/accounts")
+        check("restored account is active in accounts list", any(a["id"] == pin_id for a in accs_res2.json()))
+
         print("\nAll V2 feature tests completed successfully!")
     finally:
         import shutil

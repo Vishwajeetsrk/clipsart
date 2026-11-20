@@ -965,11 +965,44 @@ const opts = (map, val) => Object.entries(map).map(([k, v]) => `<option value="$
 function brandLogo(pf, sz = 16) {
   const p = (pf || "").toLowerCase();
   const s = `width="${sz}" height="${sz}" style="vertical-align:middle;flex:none;display:inline-block"`;
+  if (p.includes("gemini") || p.includes("google_genai")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Google Gemini"><defs><linearGradient id="gem-g-${sz}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1BA1E3"/><stop offset="50%" stop-color="#5468FF"/><stop offset="100%" stop-color="#BF5AF2"/></linearGradient></defs><path fill="url(#gem-g-${sz})" d="M12 0C12 6.627 6.627 12 0 12c6.627 0 12 5.373 12 12 0-6.627 5.373-12 12-12-6.627 0-12-5.373-12-12z"/></svg>`;
+  }
+  if (p.includes("openai") || p.includes("gpt")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="OpenAI"><rect width="24" height="24" rx="5" fill="#10A37F"/><path fill="#FFFFFF" d="M19.7 11.2a4.4 4.4 0 0 0-.4-3.4 4.5 4.5 0 0 0-4.1-2.2 4.4 4.4 0 0 0-3.3-1.5 4.5 4.5 0 0 0-4.3 3.1 4.4 4.4 0 0 0-2.8 2 4.5 4.5 0 0 0-.2 4.6 4.4 4.4 0 0 0 .4 3.4 4.5 4.5 0 0 0 4.1 2.2c.2 0 .5 0 .7-.1a4.5 4.5 0 0 0 7-1.4 4.4 4.4 0 0 0 2.8-2 4.5 4.5 0 0 0 .1-4.7zm-6.9 8.2a3.1 3.1 0 0 1-2.1-.8l1.7-1a2 2 0 0 0 1.3.4 2 2 0 0 0 2-2v-3.7l1.3.8a3.1 3.1 0 0 1-4.2 6.3zm-6.2-3.6a3.1 3.1 0 0 1-.3-2.3l1.7 1a2 2 0 0 0 1 .8 2 2 0 0 0 2.2-.8l3.2-1.9v1.6l-1.3.8a3.1 3.1 0 0 1-6.5-.8zm-1.2-5.7a3.1 3.1 0 0 1 1.8-1.5v2a2 2 0 0 0-.3 1.2 2 2 0 0 0 .9 1.7l3.2 1.9-1.4.8a3.1 3.1 0 0 1-4.2-6.1zm8.3-.9-3.2 1.9-1.4-.8a3.1 3.1 0 0 1 5.9-1.9l-1.3.8zm2.6 1.7v-2a2 2 0 0 0 .3-1.2 2 2 0 0 0-.9-1.7l-3.2-1.9 1.4-.8a3.1 3.1 0 0 1 4.2 6.1l-1.8 1.5zm.9 3.5-1.7-1a2 2 0 0 0-1-.8 2 2 0 0 0-2.2.8l-3.2 1.9V13.8l1.3-.8a3.1 3.1 0 0 1 6.8.8z"/></svg>`;
+  }
+  if (p.includes("anthropic") || p.includes("claude")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Anthropic Claude"><rect width="24" height="24" rx="5" fill="#D97757"/><path fill="#FFFFFF" d="m13.7 4.5 4.8 15h-2.6l-1-3.3H9.1l-1 3.3H5.5l4.8-15h3.4zm-1.7 3.9-2.1 6.2h4.2l-2.1-6.2z"/></svg>`;
+  }
+  if (p.includes("xai") || p.includes("grok")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="xAI Grok"><rect width="24" height="24" rx="5" fill="#000000"/><path fill="#FFFFFF" d="M18.8 4.5h-3.2l-3.6 5.3-3.6-5.3H5.2l5.2 7.5-5.4 7.5h3.2l3.8-5.5 3.8 5.5h3.2l-5.4-7.5 5.2-7.5z"/></svg>`;
+  }
+  if (p.includes("groq")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Groq"><rect width="24" height="24" rx="5" fill="#F55036"/><path fill="#FFFFFF" d="M12 4a8 8 0 1 0 6.6 12.5l-2.1-1.6A5.4 5.4 0 1 1 12 6.6c1.6 0 3 .7 4 1.8l-2.5 2.5h6V5l-2 2A7.9 7.9 0 0 0 12 4z"/></svg>`;
+  }
+  if (p.includes("openrouter")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="OpenRouter"><rect width="24" height="24" rx="5" fill="#6366F1"/><path fill="#FFFFFF" d="M6 6h4v4H6V6zm8 0h4v4h-4V6zm-4 8h4v4h-4v-4zm-4 0h2v-2h4v2h2v4H6v-4zm8-6v2h-4V8h4z"/></svg>`;
+  }
+  if (p.includes("ollama")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Ollama"><rect width="24" height="24" rx="5" fill="#1E1E1E"/><path fill="#FFFFFF" d="M15.5 5a2 2 0 0 0-2 2v2H11a4 4 0 0 0-4 4v5a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-1h2v1a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-8a4 4 0 0 0-1.5-3.1V7a2 2 0 0 0-2-2zM14 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm-4 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm4 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>`;
+  }
+  if (p.includes("custom") || p.includes("neural") || p.includes("local")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Custom AI"><rect width="24" height="24" rx="5" fill="#347A3D"/><path fill="#FFFFFF" d="M12 2a2 2 0 0 1 2 2v1h1a3 3 0 0 1 3 3v1h1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1v1a3 3 0 0 1-3 3h-1v1a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-1H7a3 3 0 0 1-3-3v-1H3a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2h1V8a3 3 0 0 1 3-3h1V4a2 2 0 0 1 2-2h2zm-3 6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H9zm1.5 2h3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-3a.5.5 0 0 1 .5-.5z"/></svg>`;
+  }
+  if (p.includes("harddrive") || p.includes("disk") || p.includes("storage")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Storage"><rect width="24" height="24" rx="5" fill="#245F30"/><path fill="#FFFFFF" d="M4 6h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm0 7h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2zm14 2a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-3 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zM4 10h16V8H4v2zm0 7h16v-2H4v2z"/></svg>`;
+  }
+  if (p.includes("pinterest") || p === "pin") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Pinterest"><circle cx="12" cy="12" r="12" fill="#E60023"/><path fill="#FFFFFF" d="M12 3.8a8.2 8.2 0 0 0-3 15.8c-.1-.7-.2-1.7 0-2.4l1.3-5.5s-.3-.7-.3-1.7c0-1.6.9-2.8 2-2.8 1 0 1.4.7 1.4 1.6 0 1-.6 2.4-1 3.8-.3 1.1.6 2.1 1.7 2.1 2 0 3.6-2.1 3.6-5.2 0-2.7-2-4.6-4.8-4.6-3.3 0-5.2 2.5-5.2 5 0 1 .4 2.1.9 2.7.1.1.1.2.1.3l-.3 1.4c0 .2-.2.3-.4.2-1.6-.7-2.6-3-2.6-4.9 0-4 2.9-7.7 8.4-7.7 4.4 0 7.9 3.2 7.9 7.4 0 4.4-2.8 8-6.6 8-1.3 0-2.5-.7-2.9-1.5l-.8 3.1c-.3 1.1-1.1 2.5-1.6 3.4a8.2 8.2 0 0 0 2.9.5 8.2 8.2 0 0 0 8.2-8.2c0-4.5-3.7-8.2-8.2-8.2z"/></svg>`;
+  }
+  if (p.includes("threads") || p === "th") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Threads"><rect width="24" height="24" rx="5" fill="#000000"/><path fill="#FFFFFF" d="M15.4 10.8c-.2-.1-.5-.2-.9-.3a7.4 7.4 0 0 0-2.5-.2 5.5 5.5 0 0 0-4 1.4 4.3 4.3 0 0 0-1.3 3.3c0 2.2 1.6 3.7 4 3.7 2.1 0 3.6-1.1 4.2-2.9.4-.9.5-2 .5-3.3V12c0-3.3-2.1-5.6-5.5-5.6-3.7 0-6.4 2.7-6.4 6.6 0 4.2 3 7 7.2 7 1.9 0 3.6-.6 4.7-1.7l-1.3-1.4c-.9.9-2.1 1.4-3.4 1.4-3 0-5-2-5-5.3s1.9-5 4.5-5c2.4 0 3.7 1.5 3.7 3.8v.5c-.7-.1-1.5-.1-2.3 0zm-1.8 4.2c-.3 1.1-1.2 1.9-2.5 1.9-1.3 0-2.2-.8-2.2-2.1 0-1.3 1-2.1 2.5-2.1.8 0 1.5.1 2.2.3v2z"/></svg>`;
+  }
   if (p.includes("youtube") || p === "yt") {
     return `<svg ${s} viewBox="0 0 24 24" aria-label="YouTube"><path fill="#FF0000" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81z"/><polygon fill="#FFFFFF" points="9.55,15.57 15.82,12 9.55,8.43"/></svg>`;
   }
   if (p.includes("instagram") || p === "ig") {
-    return `<svg ${s} viewBox="0 0 24 24" aria-label="Instagram"><defs><radialGradient id="ig-g-${sz}" cx="10%" cy="105%" r="130%"><stop offset="0" stop-color="#FFD600"/><stop offset="0.25" stop-color="#FF7A00"/><stop offset="0.5" stop-color="#FF0069"/><stop offset="0.75" stop-color="#D300C5"/><stop offset="1" stop-color="#7638FA"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig-g-${sz})"/><path fill="#FFFFFF" d="M12 7.03a4.97 4.97 0 1 0 0 9.94 4.97 4.97 0 0 0 0-9.94zm0 8.2a3.23 3.23 0 1 1 0-6.46 3.23 3.23 0 0 1 0 6.46zm5.16-8.52a1.16 1.16 0 1 1-2.32 0 1.16 1.16 0 0 1 2.32 0z"/><path fill="none" stroke="#FFFFFF" stroke-width="1.8" d="M12 3.2c2.86 0 3.2.01 4.33.06 1.05.05 1.62.22 2 .37.5.2.86.43 1.24.8.37.38.61.74.8 1.24.15.38.32.95.37 2 .05 1.13.06 1.47.06 4.33s-.01 3.2-.06 4.33c-.05 1.05-.22 1.62-.37 2a3.3 3.3 0 0 1-.8 1.24c-.38.37-.74.61-1.24.8-.38.15-.95.32-2 .37-1.13.05-1.47.06-4.33.06s-3.2-.01-4.33-.06c-1.05-.05-1.62-.22-2-.37a3.3 3.3 0 0 1-1.24-.8c-.37-.38-.61-.74-.8-1.24-.15-.38-.32-.95-.37-2-.05-1.13-.06-1.47-.06-4.33s.01-3.2.06-4.33c.05-1.05.22-1.62.37-2 .2-.5.43-.86.8-1.24.38-.37.74-.61 1.24-.8.38-.15.95-.32 2-.37 1.13-.05 1.47-.06 4.33-.06z"/></svg>`;
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Instagram"><defs><radialGradient id="ig-g-${sz}" cx="10%" cy="105%" r="130%"><stop offset="0%" stop-color="#FFD600"/><stop offset="0.25" stop-color="#FF7A00"/><stop offset="0.5" stop-color="#FF0069"/><stop offset="0.75" stop-color="#D300C5"/><stop offset="1" stop-color="#7638FA"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig-g-${sz})"/><path fill="#FFFFFF" d="M12 7.03a4.97 4.97 0 1 0 0 9.94 4.97 4.97 0 0 0 0-9.94zm0 8.2a3.23 3.23 0 1 1 0-6.46 3.23 3.23 0 0 1 0 6.46zm5.16-8.52a1.16 1.16 0 1 1-2.32 0 1.16 1.16 0 0 1 2.32 0z"/><path fill="none" stroke="#FFFFFF" stroke-width="1.8" d="M12 3.2c2.86 0 3.2.01 4.33.06 1.05.05 1.62.22 2 .37.5.2.86.43 1.24.8.37.38.61.74.8 1.24.15.38.32.95.37 2 .05 1.13.06 1.47.06 4.33s-.01 3.2-.06 4.33c-.05 1.05-.22 1.62-.37 2a3.3 3.3 0 0 1-.8 1.24c-.38.37-.74.61-1.24.8-.38.15-.95.32-2 .37-1.13.05-1.47.06-4.33.06s-3.2-.01-4.33-.06c-1.05-.05-1.62-.22-2-.37a3.3 3.3 0 0 1-1.24-.8c-.37-.38-.61-.74-.8-1.24-.15-.38-.32-.95-.37-2-.05-1.13-.06-1.47-.06-4.33s.01-3.2.06-4.33c.05-1.05.22-1.62.37-2 .2-.5.43-.86.8-1.24.38-.37.74-.61 1.24-.8.38-.15.95-.32 2-.37 1.13-.05 1.47-.06 4.33-.06z"/></svg>`;
   }
   if (p.includes("tiktok") || p === "tt") {
     return `<svg ${s} viewBox="0 0 24 24" aria-label="TikTok"><rect width="24" height="24" rx="5" fill="#010101"/><path fill="#25F4EE" d="M17.8 7.2a4.4 4.4 0 0 1-3.4-3.3V3.5h-2.4v10.5a2.2 2.2 0 0 1-4 1.3 2.2 2.2 0 0 1 1.8-3.5c.2 0 .5.03.7.1v-2.5a4.8 4.8 0 0 0-.7 0 4.8 4.8 0 0 0-4.8 4.8 4.8 4.8 0 0 0 8.3 3.4c.9-.9 1.4-2.1 1.4-3.4V8.5a6.2 6.2 0 0 0 3.6 1.2V7.3a3.7 3.7 0 0 1-.5-.1z"/><path fill="#FE2C55" d="M17.5 6.9a4.4 4.4 0 0 1-3.4-3.3V3.2h-2.4v10.5a2.2 2.2 0 0 1-4 1.3 2.2 2.2 0 0 1 1.8-3.5c.2 0 .5.03.7.1V9.1a4.8 4.8 0 0 0-.7 0 4.8 4.8 0 0 0-4.8 4.8 4.8 4.8 0 0 0 8.3 3.4c.9-.9 1.4-2.1 1.4-3.4V8.2a6.2 6.2 0 0 0 3.6 1.2V7a3.7 3.7 0 0 1-.5-.1z"/><path fill="#FFFFFF" d="M17.65 7.05a4.4 4.4 0 0 1-3.4-3.3V3.35h-2.4v10.5a2.2 2.2 0 0 1-4 1.3 2.2 2.2 0 0 1 1.8-3.5c.2 0 .5.03.7.1V9.25a4.8 4.8 0 0 0-.7 0 4.8 4.8 0 0 0-4.8 4.8 4.8 4.8 0 0 0 8.3 3.4c.9-.9 1.4-2.1 1.4-3.4V8.35a6.2 6.2 0 0 0 3.6 1.2V7.15a3.7 3.7 0 0 1-.5-.1z"/></svg>`;
@@ -2341,16 +2374,102 @@ async function drawSettings() {
   try {
     if (tab === "ai") {
       const k = S.ai = await api("/api/ai");
-      body.innerHTML = `<section class="set-sec"><h2>AI</h2><p class="help">Clipsart uses an AI model to pick the moments worth clipping and to write hooks, titles and captions. Use your own key from any of these services. You pay that service directly. Without a key, clips are picked by loudness.</p>
-          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Ready</span><span class="sub">${esc(k.label)} · ${esc(k.models[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
-          <div class="ai-form">
-            <label class="f">AI service<select id="ai_provider">${k.providers.map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>
-            <label class="f">Key<input id="ai_key" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="ai_keyhint"></span></label>
-            <label class="f" id="ai_basewrap">Address<input id="ai_base" value="${esc(k.base_url || "")}" spellcheck="false"><span class="hint">Where the service answers. Only needed for a custom service.</span></label>
-            <label class="f">Model<span class="with"><input id="ai_model" list="ai_models" value="${esc(k.models.join(", "))}" spellcheck="false"><button class="btn" type="button" data-act="aimodels">Find models</button></span>
-              <datalist id="ai_models"></datalist><span class="hint">A fast, inexpensive model is the right choice. Add a second one after a comma to fall back on.</span></label>
+      const chipsFor = {
+        gemini: ["gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-pro"],
+        openai: ["gpt-4o-mini", "gpt-4o", "chatgpt-4o-latest"],
+        xai: ["grok-4", "grok-2-vision-1212", "grok-2"],
+        groq: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "llama-3.1-8b-instant"],
+        openrouter: ["google/gemini-2.5-flash", "anthropic/claude-3.5-haiku", "openai/gpt-4o-mini"],
+        anthropic: ["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"],
+        ollama: ["llama3.1", "mistral", "qwen2.5:7b", "gemma2"],
+        custom: ["local-model", "default"]
+      };
+      const curChips = chipsFor[k.provider] || [];
+
+      body.innerHTML = `<section class="set-sec">
+        <h2>AI Engine & Moments Intelligence</h2>
+        <p class="help">Clipsart uses an AI model to detect the highest-energy moments, find action peaks, and craft viral hooks, titles, and captions. Connect with your own key from any of the official providers below. Your key is stored securely on your server and is never exposed. Without a key, clips are picked by audio loudness peaks.</p>
+
+        <!-- Active Status Card -->
+        <div style="display:flex;align-items:center;justify-content:space-between;background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px">
+              ${brandLogo(k.provider || "gemini", 26)}
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="pill ${k.ready ? 'ok' : 'warn'}" style="font-weight:700">
+                  ${k.ready ? `● ${ic("check")}Ready` : `○ Not set up`}
+                </span>
+                <b style="font-size:15px;color:var(--text)">${esc(k.label || "AI Provider")}</b>
+              </div>
+              <small style="color:var(--dim);font-size:12px;display:block;margin-top:2px">
+                ${k.ready ? `Active Model: <code>${esc(k.models[0] || "")}</code>${k.models.length > 1 ? ` (+${k.models.length - 1} fallback)` : ''}` : 'Choose a service, paste your key, and pick a model below.'}
+              </small>
+            </div>
           </div>
-          <div class="row" style="margin-top:20px"><button class="btn primary" data-act="aisave">Save and test</button>${k.ready ? `<button class="btn" data-act="aitest">Test again</button>` : ""}</div></section>`;
+          ${k.ready ? `<button class="btn sm" data-act="aitest" id="btn_aitest" style="font-weight:600">${ic("bolt")}Test Latency & Response</button>` : ''}
+        </div>
+
+        <!-- Provider Selection Grid with Real Logos -->
+        <label class="f" style="margin-bottom:8px"><span style="font-weight:600;font-size:13px">Select AI Service</span></label>
+        <div class="ai-provider-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:10px;margin-bottom:18px">
+          ${k.providers.map(p => {
+            const isCur = p.id === k.provider;
+            return `
+            <div class="ai-prov-card ${isCur ? 'active' : ''}" data-act="selectaiprovider" data-p="${esc(p.id)}" style="cursor:pointer;background:var(--bg);border:2px solid ${isCur ? 'var(--green, #347A3D)' : 'var(--line)'};border-radius:10px;padding:12px 10px;text-align:center;transition:all 0.15s ease">
+              <div style="display:grid;place-items:center;margin-bottom:6px">
+                ${brandLogo(p.id, 26)}
+              </div>
+              <b style="display:block;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.label)}</b>
+              <span style="font-size:10px;color:${isCur ? 'var(--green, #347A3D)' : 'var(--dim)'};font-weight:600">${isCur ? '● Selected' : (p.needs_key ? 'Needs Key' : 'Local / Free')}</span>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- Synchronized Settings Form -->
+        <div class="ai-form" style="background:var(--card-sub);border:1px solid var(--line);border-radius:var(--r);padding:18px">
+          <label class="f" style="display:none">AI service
+            <select id="ai_provider">${k.providers.map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select>
+          </label>
+
+          <label class="f">
+            <span style="display:flex;align-items:center;justify-content:space-between">
+              <b>API Key</b>
+              <span id="ai_keyhint" style="font-size:11px;color:var(--dim)"></span>
+            </span>
+            <input id="ai_key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your API key here">
+            <small class="hint" style="font-size:11px;color:var(--dim)">Your key is stored securely in your private data folder and is never transmitted to any third party.</small>
+          </label>
+
+          <label class="f" id="ai_basewrap">
+            <b>API Endpoint / Base Address</b>
+            <input id="ai_base" value="${esc(k.base_url || "")}" spellcheck="false" placeholder="http://127.0.0.1:11434/v1">
+            <span class="hint">Where the service answers. Only required for Custom or local Ollama instances.</span>
+          </label>
+
+          <label class="f">
+            <b>Model ID</b>
+            <div class="with">
+              <input id="ai_model" list="ai_models" value="${esc(k.models.join(", "))}" spellcheck="false" placeholder="e.g. gemini-2.5-flash">
+              <button class="btn" type="button" data-act="aimodels">${ic("search")}Find models</button>
+            </div>
+            <datalist id="ai_models"></datalist>
+            
+            <!-- Quick Suggestion Chips -->
+            <div id="ai_chips" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px">
+              <small style="font-size:11px;color:var(--dim);font-weight:600">Recommended models:</small>
+              ${curChips.map(c => `<button type="button" class="btn sm ghost" data-act="aimodelchip" data-m="${esc(c)}" style="padding:2px 8px;font-size:11px;border-radius:6px;background:var(--bg)">${esc(c)}</button>`).join('')}
+            </div>
+            <span class="hint" style="margin-top:6px;display:block">A fast, inexpensive model is the optimal choice for high-volume clipping. Add a second one after a comma as a fallback.</span>
+          </label>
+        </div>
+
+        <div class="row" style="margin-top:20px;gap:10px">
+          <button class="btn primary" data-act="aisave">${ic("check")}Save and test</button>
+          ${k.ready ? `<button class="btn" data-act="aitest">${ic("bolt")}Test again</button>` : ""}
+        </div>
+      </section>`;
       aiHints();
     }
     if (tab === "profile") {
@@ -2378,59 +2497,89 @@ async function drawSettings() {
       const s = S.stor = await api("/api/storage");
       const usedPct = s.total_gb ? Math.min(100, Math.max(1, 100 * (s.total_gb - s.free_gb) / s.total_gb)) : 0;
       const gb = n => `${Number(n).toLocaleString(undefined, {maximumFractionDigits: 1})} GB`;
-      body.innerHTML = `<section class="set-sec"><h2>Storage</h2><p class="help">Everything Clipsart keeps is in one folder: your videos, clips, recordings, creators and settings. You can open it, back it up, or move it to a drive with more room.</p>
-          ${s.full ? `<div class="note" style="margin:0 0 14px">${ic("warn")}<span><b>This drive is almost full, so Clipsart can't take new videos.</b> ${gb(s.free_gb)} free on ${esc(s.drive)}; it needs at least ${gb(s.min_free_gb)}. Free up space, or move the folder to another drive below.</span></div>` : ""}
-          ${s.pending ? `<div class="note" style="margin:0 0 14px">${ic("clock")}<span><b>The folder changes to ${esc(s.pending)} the next time Clipsart starts.</b> Close Clipsart and start it again. <button class="btn sm ghost" data-act="storcancel">Undo</button></span></div>` : ""}
-          <div class="stor-path"><code>${esc(s.path)}</code>
-            <div class="row" style="gap:6px;flex-wrap:wrap">
-              <button class="btn sm" data-act="copytext" data-t="${esc(s.path)}" title="Copy full directory path">${ic("copy")}Copy path</button>
-              ${s.local ? `<button class="btn sm primary" data-act="storopen" title="Open data folder in File Explorer">${ic("folder")}Open folder</button>
-              <button class="btn sm" data-act="storopen" data-sub="clips" title="Directly open clips directory in File Explorer">${ic("film")}Open Clips</button>` : ""}
-              <a class="btn sm" href="/api/storage/backup" download="clipsart-backup.zip" title="Download a zip backup of settings, accounts and creators">${ic("down")}Backup data</a>
+      body.innerHTML = `<section class="set-sec">
+        <h2>Storage & Local Directory Management</h2>
+        <p class="help">Everything Clipsart creates and manages is in one unified directory: your raw recordings, 4K rendered MP4 clips, creators, database, and settings. You can open it in File Explorer, back it up, or migrate it to another drive.</p>
+        
+        ${s.full ? `<div class="note" style="margin:0 0 14px">${ic("warn")}<span><b>This drive is almost full, so Clipsart can't take new videos.</b> ${gb(s.free_gb)} free on ${esc(s.drive)}; it needs at least ${gb(s.min_free_gb)}. Free up space, or move the folder to another drive below.</span></div>` : ""}
+        ${s.pending ? `<div class="note" style="margin:0 0 14px">${ic("clock")}<span><b>The folder changes to ${esc(s.pending)} the next time Clipsart starts.</b> Close Clipsart and start it again. <button class="btn sm ghost" data-act="storcancel">Undo</button></span></div>` : ""}
+
+        <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:12px">
+              ${brandLogo("harddrive", 32)}
+              <div>
+                <b style="font-size:15px;color:var(--text)">Local Storage Drive (${esc(s.drive)})</b>
+                <div style="color:var(--dim);font-size:12px;margin-top:2px">
+                  Clipsart Data: <b style="color:var(--text)">${gb(s.used_gb)}</b> &nbsp;·&nbsp;
+                  Drive Free: <b style="color:${s.full ? 'var(--bad, #E53935)' : 'var(--green, #347A3D)'}">${gb(s.free_gb)}</b> of ${gb(s.total_gb)}
+                </div>
+              </div>
             </div>
+            <span class="pill ${s.full ? 'warn' : 'ok'}" style="font-size:11px">
+              ${s.full ? '⚠ Low Storage Warning' : '● Healthy Drive Space'}
+            </span>
           </div>
-          <div class="stor-bar ${s.full ? "low" : ""}" role="img" aria-label="${Math.round(usedPct)}% of the drive is used"><i style="width:${usedPct}%"></i></div>
-          <div class="stor-nums"><span>Clipsart uses <b>${gb(s.used_gb)}</b></span><span><b>${gb(s.free_gb)}</b> free of ${gb(s.total_gb)} on ${esc(s.drive)}</span></div>
-          ${s.fixed ? `<p class="sub" style="margin-top:16px">This folder is set with CLIPSART_DATA in the .env file. Change it there, or remove that line to choose it here.</p>`
-            : S.storOpen ? `<div class="stor-change"><label class="f">New folder<span class="with"><input id="stor_new" placeholder="For example D:\\Clipsart" spellcheck="false" value="${esc(S.storNew || "")}">${s.local ? `<button class="btn" type="button" data-act="storpick">Browse</button>` : ""}</span></label>
-                <label class="ck"><input type="checkbox" id="stor_move" checked>Move everything that is in the current folder there too</label>
-                <p class="sub">The change happens the next time Clipsart starts, so nothing is moved while a video is being made.</p>
-                <div class="row"><button class="btn primary" data-act="storsave">Use this folder</button><button class="btn ghost" data-act="storchange">Cancel</button></div></div>`
-            : `<div class="row" style="margin-top:16px"><button class="btn" data-act="storchange">Change folder</button></div>`}</section>`;
+
+          <!-- Drive capacity gauge bar -->
+          <div style="background:var(--bg);height:10px;border-radius:5px;overflow:hidden;border:1px solid var(--line);margin-bottom:14px">
+            <div style="width:${usedPct}%;height:100%;background:${s.full ? 'var(--bad, #E53935)' : usedPct > 85 ? 'var(--orange, #FF8A45)' : 'var(--green, #347A3D)'};transition:width 0.3s ease"></div>
+          </div>
+
+          <!-- Active Path Box -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 14px;flex-wrap:wrap">
+            <code style="font-size:12px;color:var(--text);word-break:break-all">${esc(s.path)}</code>
+            <button class="btn sm" data-act="copytext" data-t="${esc(s.path)}" title="Copy full directory path">${ic("copy")}Copy path</button>
+          </div>
+
+          <!-- Dedicated Action Buttons Toolbar -->
+          <div class="row" style="margin-top:16px;gap:8px;flex-wrap:wrap">
+            ${s.local ? `
+              <button class="btn sm primary" data-act="storopen" title="Open data folder in Windows File Explorer">${ic("folder")}Open Data Folder</button>
+              <button class="btn sm" data-act="storopen" data-sub="clips" title="Directly open clips directory in Windows File Explorer">${ic("film")}Open Clips Folder</button>
+            ` : ""}
+            <a class="btn sm" href="/api/storage/backup" download="clipsart-backup.zip" title="Download a zip backup of settings, accounts and creators">${ic("down")}Backup Data (.zip)</a>
+            <button class="btn sm ghost" data-act="storchange">${ic("repeat")}Change Folder</button>
+          </div>
+        </div>
+
+        ${s.fixed ? `<p class="sub" style="margin-top:16px">This folder is set with CLIPSART_DATA in the .env file. Change it there, or remove that line to choose it here.</p>`
+          : S.storOpen ? `<div class="stor-change" style="background:var(--card-sub);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-top:14px">
+              <label class="f">New folder location<span class="with"><input id="stor_new" placeholder="For example D:\\Clipsart" spellcheck="false" value="${esc(S.storNew || "")}">${s.local ? `<button class="btn" type="button" data-act="storpick">Browse</button>` : ""}</span></label>
+              <label class="ck"><input type="checkbox" id="stor_move" checked>Move everything that is in the current folder there too</label>
+              <p class="sub">The change happens the next time Clipsart starts, so nothing is moved while a video is being processed.</p>
+              <div class="row" style="gap:8px"><button class="btn primary" data-act="storsave">Use this folder</button><button class="btn ghost" data-act="storchange">Cancel</button></div></div>` : ""}
+      </section>`;
     }
     if (tab === "apps") {
-      const conn = S.accounts || [];
-      const mine = plat => conn.filter(a => (a.platform || a.label || "").toLowerCase().includes(plat));
-      const listOf = arr => arr.length ? `<div class="applist">${arr.map(a => {
-        const isApi = a.has_api || (a.access_token && a.access_token !== "web");
-        const pill = isApi ? `<span class="pill ok">⚡ API Auto-Post</span>` : `<span class="pill">🌐 Web Shortcut</span>`;
-        return `<div>${pill}<span style="display:inline-flex;align-items:center;gap:6px">${brandLogo(a.platform, 16)}<b>${esc(a.name)}</b></span><span class="sub">${esc(a.detail || "")}</span>
-          ${a.url ? `<a class="btn sm ghost" href="${esc(a.url)}" target="_blank" rel="noopener" title="Open in browser">${ic("upright")}Open</a>` : ""}
-          <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}">Disconnect</button></div>`;
-      }).join("")}</div>` : "";
-      const yt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>';
-      const ig = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg>';
-      const tt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .59.04.86.13v-3.5a6.37 6.37 0 0 0-.86-.05A6.34 6.34 0 0 0 3.15 15.7a6.34 6.34 0 0 0 10.86 4.43 6.3 6.3 0 0 0 1.81-4.43V8.73a8.2 8.2 0 0 0 4.77 1.52V6.8a4.85 4.85 0 0 1-1-.11z"/></svg>';
-      const fb = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>';
-      const tw = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
-      const li = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.3a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28"/></svg>';
+      const subTab = S.appSubTab || "active";
+      const conn = await api("/api/accounts");
+      const removed = await api("/api/accounts/removed").catch(() => []);
+      
+      const activeList = conn.filter(a => a.status !== "expired");
+      const expiredList = conn.filter(a => a.status === "expired");
+      
       const ok = S.status.connect || {}, admin = me.is_admin;
       const setup = admin ? await api("/api/apps").catch(() => null) : null;
+      
       const GUIDE = {
         youtube: ["https://console.cloud.google.com/apis/credentials", "Google Cloud",
           ["Create a project and turn on <b>YouTube Data API v3</b>.", "Create an <b>OAuth client ID</b> of type <b>Web application</b>.",
            "Add the address below under <b>Authorised redirect URIs</b>.", "Paste its Client ID and Client secret here."],
-          "Until Google verifies your app, people see a warning when they connect, and uploads stay private."],
+          "Until Google verifies your app, uploads stay private."],
         instagram: ["https://developers.facebook.com/apps", "Meta for Developers",
           ["Create a <b>Business</b> app and add <b>Instagram</b> (API setup with Instagram login).",
            "Under <b>Business login settings</b>, add the address below as a redirect URL.", "Paste the <b>Instagram app ID</b> and <b>Instagram app secret</b> here."],
-          "Works with Creator and Business Instagram accounts. Until Meta reviews your app, only accounts you add as testers can connect."],
+          "Works with Creator and Business Instagram accounts. Until Meta reviews your app, only test accounts can connect."],
         tiktok: ["https://developers.tiktok.com/apps", "TikTok for Developers",
           ["Create an app and add <b>Login Kit</b> and <b>Content Posting API</b> with Direct Post turned on.",
            "Add the address below as a redirect URI, with the scopes <b>user.info.basic</b> and <b>video.publish</b>.", "Paste the Client key and Client secret here."],
-          "Until TikTok reviews your app, clips are posted as private: only the account owner sees them."]};
-      const card = (pf, name, logo, bg, desc, directUrl, isDirectOnly = false) => {
-        const accs = mine(pf), st = setup?.[pf], open = S.setupOpen === pf, g = GUIDE[pf];
+          "Until TikTok reviews your app, clips are posted as private: only the account owner sees them."]
+      };
+
+      const card = (pf, name, bg, desc, directUrl, isDirectOnly = false) => {
+        const accs = conn.filter(a => (a.platform || a.label || "").toLowerCase().includes(pf));
+        const st = setup?.[pf], open = S.setupOpen === pf, g = GUIDE[pf];
         let act = `<a class="btn sm ghost" href="${directUrl}" target="_blank" rel="noopener" title="Directly open ${name}">${ic("upright")}Open</a>`;
         if (isDirectOnly) {
           act += `<button class="btn sm primary" data-act="directconnect" data-p="${pf}">${ic("bolt")}${accs.length ? "Add another" : "Fast Connect"}</button>`;
@@ -2443,7 +2592,7 @@ async function drawSettings() {
             if (admin && g) act += `<button class="btn sm ghost" data-act="appsetup" data-p="${pf}" title="Configure OAuth App for ${name}">${ic("cog")}OAuth API</button>`;
           }
         }
-        const panel = open && st && g ? `<div class="appsetup">
+        const panel = open && st && g ? `<div class="appsetup" style="margin-top:12px">
             <p class="sub">To let people connect ${name}, register this server once with <a href="${g[0]}" target="_blank" rel="noopener">${g[1]}</a>. It takes about five minutes.</p>
             <ol>${g[2].map(x => `<li>${x}</li>`).join("")}</ol>
             <div class="copyrow"><code>${esc(st.redirect)}</code><button class="btn sm" data-act="copytext" data-t="${esc(st.redirect)}">${ic("copy")}Copy</button></div>
@@ -2452,18 +2601,142 @@ async function drawSettings() {
               <label class="f">${esc(st.secret_label)}<input id="app_secret" type="password" placeholder="${st.ready ? "Saved. Paste a new one to replace it" : ""}" autocomplete="off"></label></div>
             <p class="sub">${g[3]}</p>
             <div class="row"><button class="btn primary" data-act="appsave" data-p="${pf}">Save</button><button class="btn ghost" data-act="appsetup" data-p="">Close</button></div></div>` : "";
-        return `<div class="appcard"><span class="applogo" style="background:${bg}">${logo}</span>
-          <div class="apptx"><b>${name}</b><span>${desc}</span>${listOf(accs)}</div><div class="appact" style="display:flex;gap:6px;align-items:center">${act}</div>${panel}</div>`;
+        return `<div class="appcard" style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="applogo" style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:${bg}">${brandLogo(pf, 22)}</span>
+              <div>
+                <b style="font-size:14px;color:var(--text)">${name}</b>
+                <span class="sub" style="display:block;font-size:12px;color:var(--dim)">${desc}</span>
+              </div>
+            </div>
+            <div class="appact" style="display:flex;gap:6px;align-items:center">${act}</div>
+          </div>
+          ${panel}
+        </div>`;
       };
-      body.innerHTML = `<section class="set-sec"><h2>Connected apps</h2><p class="help">Connect the accounts Clipsart posts clips to: press Connect, sign in on the platform's own page, and you're back here. Clipsart never sees your passwords. Then pick which accounts each creator posts to, in that creator's Setup.</p>
-        <div class="apps">
-          ${card("youtube", "YouTube", yt, "#FF0000", "Post clips to your channel as Shorts.", "https://studio.youtube.com")}
-          ${card("instagram", "Instagram", ig, "linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)", "Post clips as Reels. Needs a Creator or Business account.", "https://www.instagram.com")}
-          ${card("tiktok", "TikTok", tt, "#000", "Post clips straight to your TikTok.", "https://www.tiktok.com")}
-          ${card("facebook", "Facebook Reels", fb, "#1877F2", "Post vertical video Reels directly to your Facebook Pages.", "https://business.facebook.com", true)}
-          ${card("twitter", "X / Twitter", tw, "#000", "Post high-engagement video clips directly to your X timeline.", "https://x.com", true)}
-          ${card("linkedin", "LinkedIn Video", li, "#0A66C2", "Publish business, educational, and thought-leadership clips to your profile or company page.", "https://www.linkedin.com", true)}
-        </div></section>`;
+
+      const renderAccountItem = (a, isExpired = false) => {
+        const isApi = a.has_api || (a.access_token && a.access_token !== "web");
+        const perms = a.permissions || ["Publish video clips", "Read basic account info"];
+        const statusPill = isExpired
+          ? `<span class="pill warn" style="font-size:11px">⚠ Token Expired · Reconnect Required</span>`
+          : isApi
+            ? `<span class="pill ok" style="font-size:11px">⚡ API Auto-Post · Token Active</span>`
+            : `<span class="pill" style="font-size:11px">🌐 1-Click Fast Web Publish</span>`;
+
+        return `
+          <div style="background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--muted);display:grid;place-items:center;border:1px solid var(--line)">
+                  ${brandLogo(a.platform, 24)}
+                </div>
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <b style="font-size:15px;color:var(--text)">${esc(a.name)}</b>
+                    ${statusPill}
+                  </div>
+                  <span style="font-size:12px;color:var(--dim);display:block;margin-top:2px">
+                    ${esc(a.label || a.platform)} &nbsp;·&nbsp; ${esc(a.detail || "")}
+                  </span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                ${isExpired ? `<button class="btn sm primary" data-act="directconnect" data-p="${esc(a.platform)}">${ic("bolt")}Renew / Reconnect</button>` : `<button class="btn sm" data-act="acctest" data-id="${esc(a.id)}" title="Verify account connection status">${ic("bolt")}Test Connection</button>`}
+                ${a.url ? `<a class="btn sm ghost" href="${esc(a.url)}" target="_blank" rel="noopener" title="Open profile in browser">${ic("upright")}Open</a>` : ""}
+                <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}" style="color:var(--bad, #E53935)" title="Disconnect account">${ic("trash")}Disconnect</button>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:11px;color:var(--dim)">
+              <b>Granted Permissions & Access Scopes:</b>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+                ${perms.map(p => `<span style="background:var(--muted);border:1px solid var(--line);padding:2px 8px;border-radius:4px;color:var(--text)">${esc(p)}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      body.innerHTML = `<section class="set-sec">
+        <h2>Apps and websites</h2>
+        <p class="help">These are apps, channels, and social media platforms that you've connected to your Clipsart studio. They can access non-public publishing permissions and automated video distribution workflows that you choose to share with them.</p>
+
+        <!-- Instagram Permissions Style Sub-Tabs -->
+        <div style="display:flex;gap:24px;border-bottom:1px solid var(--line);margin:16px 0 20px 0">
+          <button class="subtab-btn ${subTab === 'active' ? 'on' : ''}" data-act="appsubtab" data-st="active" style="background:none;border:none;padding:8px 0;font-size:14px;font-weight:700;color:${subTab === 'active' ? 'var(--text)' : 'var(--dim)'};border-bottom:2px solid ${subTab === 'active' ? 'var(--green, #347A3D)' : 'transparent'};cursor:pointer">
+            Active (${activeList.length})
+          </button>
+          <button class="subtab-btn ${subTab === 'expired' ? 'on' : ''}" data-act="appsubtab" data-st="expired" style="background:none;border:none;padding:8px 0;font-size:14px;font-weight:700;color:${subTab === 'expired' ? 'var(--text)' : 'var(--dim)'};border-bottom:2px solid ${subTab === 'expired' ? 'var(--green, #347A3D)' : 'transparent'};cursor:pointer">
+            Expired (${expiredList.length})
+          </button>
+          <button class="subtab-btn ${subTab === 'removed' ? 'on' : ''}" data-act="appsubtab" data-st="removed" style="background:none;border:none;padding:8px 0;font-size:14px;font-weight:700;color:${subTab === 'removed' ? 'var(--text)' : 'var(--dim)'};border-bottom:2px solid ${subTab === 'removed' ? 'var(--green, #347A3D)' : 'transparent'};cursor:pointer">
+            Removed (${removed.length})
+          </button>
+        </div>
+
+        ${subTab === "active" ? `
+          <div class="active-accounts-list">
+            ${activeList.length ? activeList.map(a => renderAccountItem(a, false)).join('') : `<div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:18px;text-align:center;margin-bottom:20px;color:var(--dim)">No active accounts yet. Connect your first channel below!</div>`}
+          </div>
+
+          <div style="margin-top:24px">
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:6px">Connect New Channels</h3>
+            <p class="help" style="margin-top:0">Choose a platform to connect in 1 click or configure OAuth for 24/7 background posting:</p>
+            <div class="apps" style="margin-top:14px">
+              ${card("youtube", "YouTube Shorts", "#FF0000", "Post clips directly to your channel as YouTube Shorts.", "https://studio.youtube.com")}
+              ${card("instagram", "Instagram Reels", "linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)", "Post vertical clips as Instagram Reels.", "https://www.instagram.com")}
+              ${card("tiktok", "TikTok", "#000000", "Direct Post vertical video clips straight to your TikTok profile.", "https://www.tiktok.com")}
+              ${card("pinterest", "Pinterest Video Pins", "#E60023", "Publish high-converting Idea Pins and Video Pins to your boards.", "https://www.pinterest.com", true)}
+              ${card("facebook", "Facebook Reels", "#1877F2", "Post vertical video Reels directly to your Facebook Pages.", "https://business.facebook.com", true)}
+              ${card("twitter", "X / Twitter", "#000000", "Post high-engagement video tweets directly to your timeline.", "https://x.com", true)}
+              ${card("linkedin", "LinkedIn Video", "#0A66C2", "Publish thought-leadership and educational clips to your profile or page.", "https://www.linkedin.com", true)}
+              ${card("threads", "Threads Video", "#000000", "Publish video updates straight to your Threads feed.", "https://www.threads.net", true)}
+            </div>
+          </div>
+        ` : ''}
+
+        ${subTab === "expired" ? `
+          <div class="expired-accounts-list">
+            ${expiredList.length ? expiredList.map(a => renderAccountItem(a, true)).join('') : `
+              <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:24px;text-align:center;color:var(--dim)">
+                ${ic("check")}<b style="display:block;margin-top:6px;color:var(--text)">All Tokens Active & Healthy</b>
+                <span>No expired accounts. All your connected tokens and integrations are currently active and ready to post.</span>
+              </div>
+            `}
+          </div>
+        ` : ''}
+
+        ${subTab === "removed" ? `
+          <div class="removed-accounts-list">
+            ${removed.length ? removed.map(a => `
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px;margin-bottom:10px;flex-wrap:wrap;gap:12px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="width:36px;height:36px;border-radius:10px;background:var(--muted);display:grid;place-items:center;border:1px solid var(--line)">
+                    ${brandLogo(a.platform, 20)}
+                  </div>
+                  <div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <b style="font-size:14px;color:var(--text)">${esc(a.name)}</b>
+                      <span class="pill" style="font-size:10px">○ Disconnected</span>
+                    </div>
+                    <small style="color:var(--dim);font-size:11px">
+                      ${esc(a.label || a.platform)} · Disconnected on ${new Date(a.removed_at * 1000).toLocaleDateString([], {day:'numeric',month:'short',year:'numeric'})}
+                    </small>
+                  </div>
+                </div>
+                <button class="btn sm primary" data-act="accrestore" data-id="${esc(a.id)}">${ic("bolt")}Restore in 1 Click</button>
+              </div>
+            `).join('') : `
+              <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:24px;text-align:center;color:var(--dim)">
+                <b>No removed accounts</b>
+                <p style="margin:4px 0 0 0;font-size:12px">When you disconnect an account, it will appear here so you can easily restore and re-activate it in 1 click.</p>
+              </div>
+            `}
+          </div>
+        ` : ''}
+      </section>`;
     }
     if (tab === "alerts") {
       const s = await api("/api/settings");
@@ -2623,7 +2896,9 @@ function openDirectConnect(pf) {
     twitter: ["X / Twitter", "Connect an X (Twitter) account to post video clips.", "X Handle / Username", "e.g. @clipsart", "", "", "Bearer Token / API Key (Optional)", "AAAAAAAAAAAAAAAAAAAAA...", "Optional: Generate a Bearer Token in your X Developer Portal to enable automated background posting."],
     linkedin: ["LinkedIn Video", "Connect a LinkedIn profile or company page.", "Account Name / Profile", "e.g. VishwaJeet SrK", "Person URN / Member ID (Optional)", "e.g. urn:li:person:me or urn:li:organization:123", "OAuth Access Token (Optional)", "AQV...", "Optional: Generate an OAuth token with w_member_social scope to enable automated background posting."],
     instagram: ["Instagram Reels", "Connect an Instagram Creator or Business account in 1 click.", "Instagram Username / Handle", "e.g. @clipsart", "", "", "User Access Token (Optional)", "IGQV...", "Optional: Paste a Meta token with instagram_business_content_publish scope for automated background posting."],
-    tiktok: ["TikTok", "Connect your TikTok account in 1 click.", "TikTok Username / Handle", "e.g. @clipsart", "", "", "Access Token (Optional)", "act...", "Optional: Paste a TikTok Content Posting API token for automated background posting."]
+    tiktok: ["TikTok", "Connect your TikTok account in 1 click.", "TikTok Username / Handle", "e.g. @clipsart", "", "", "Access Token (Optional)", "act...", "Optional: Paste a TikTok Content Posting API token for automated background posting."],
+    pinterest: ["Pinterest Video Pins", "Connect a Pinterest account to publish Idea & Video Pins.", "Pinterest Handle or Board", "e.g. @clipsart or Pinterest-IG", "Board ID (Optional)", "e.g. 104829104810293", "Access Token (Optional)", "pina_...", "Optional: Paste a Pinterest API v5 token for automated video pin publishing."],
+    threads: ["Threads", "Connect a Threads account to publish video clips to Threads.", "Threads Username / Handle", "e.g. @clipsart", "", "", "User Access Token (Optional)", "THQ...", "Optional: Paste a Meta Threads API user token for automated background publishing."]
   };
   const cfg = names[pf] || [pf, "Connect your account in 1 click", "Account Name / Handle", "@mychannel", "", "", "Access Token (Optional)", "token...", ""];
   dlg.innerHTML = `<form id="dc_form" method="dialog" class="dlg" style="max-width:480px">
@@ -3277,6 +3552,76 @@ document.addEventListener("click", async e => {
         toast(d.sub ? `Opening ${d.sub} folder in File Explorer…` : "Opening data folder in File Explorer…", "ok");
       } catch (err) {
         toast(err.message || "Could not open folder", "bad");
+      }
+      return;
+    }
+    if (a === "selectaiprovider") {
+      const p = d.p;
+      const sel = $("#ai_provider");
+      if (sel) {
+        sel.value = p;
+        aiHints();
+        document.querySelectorAll(".ai-prov-card").forEach(el => {
+          const isSel = el.getAttribute("data-p") === p;
+          el.style.borderColor = isSel ? "var(--green, #347A3D)" : "var(--line)";
+          el.classList.toggle("active", isSel);
+        });
+        const chipsFor = {
+          gemini: ["gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-2.5-pro"],
+          openai: ["gpt-4o-mini", "gpt-4o", "chatgpt-4o-latest"],
+          xai: ["grok-4", "grok-2-vision-1212", "grok-2"],
+          groq: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "llama-3.1-8b-instant"],
+          openrouter: ["google/gemini-2.5-flash", "anthropic/claude-3.5-haiku", "openai/gpt-4o-mini"],
+          anthropic: ["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"],
+          ollama: ["llama3.1", "mistral", "qwen2.5:7b", "gemma2"],
+          custom: ["local-model", "default"]
+        };
+        const cwrap = $("#ai_chips");
+        if (cwrap && chipsFor[p]) {
+          cwrap.innerHTML = `<small style="font-size:11px;color:var(--dim);font-weight:600">Recommended models:</small>` +
+            chipsFor[p].map(c => `<button type="button" class="btn sm ghost" data-act="aimodelchip" data-m="${esc(c)}" style="padding:2px 8px;font-size:11px;border-radius:6px;background:var(--bg)">${esc(c)}</button>`).join('');
+        }
+      }
+      return;
+    }
+    if (a === "aimodelchip") {
+      const m = d.m;
+      const inp = $("#ai_model");
+      if (inp) inp.value = m;
+      toast(`Selected model: ${m}`, "ok");
+      return;
+    }
+    if (a === "appsubtab") {
+      S.appSubTab = d.st;
+      return drawSettings();
+    }
+    if (a === "acctest") {
+      const aid = d.id;
+      b.disabled = true;
+      const orig = b.innerHTML;
+      b.textContent = "Testing…";
+      try {
+        const res = await api(`/api/accounts/${aid}/test`, {method: "POST"});
+        toast(res.message || "Account connection verified!", res.ok ? "ok" : "warn");
+        await drawSettings();
+      } catch (err) {
+        toast("Connection test failed: " + (err.message || err), "bad");
+      } finally {
+        if (b) { b.disabled = false; b.innerHTML = orig; }
+      }
+      return;
+    }
+    if (a === "accrestore") {
+      const aid = d.id;
+      b.disabled = true;
+      try {
+        await api(`/api/accounts/${aid}/restore`, {method: "POST"});
+        toast("Account restored and re-connected!", "ok");
+        await drawSettings();
+      } catch (err) {
+        toast("Restore failed: " + (err.message || err), "bad");
+      } finally {
+        if (b) b.disabled = false;
       }
       return;
     }
