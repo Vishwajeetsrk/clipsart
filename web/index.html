@@ -613,8 +613,60 @@ dialog::backdrop{background:rgba(14,12,11,.42);animation:fadein .16s ease}
 .dlg{padding:24px;width:450px;max-width:100%;display:flex;flex-direction:column;gap:14px}
 .dlg h2{font-size:18px;font-weight:600;color:var(--brand-ink)}
 .dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
-.editor{display:grid;grid-template-columns:minmax(320px,420px) minmax(400px,640px);max-width:1060px;width:94vw;max-height:calc(100vh - 40px);border-radius:inherit;overflow:hidden;background:#fff;box-shadow:0 24px 48px rgba(0,0,0,.2)}
-.editor .stage{background:#0e0c0b;display:grid;place-items:center;position:relative;min-height:320px;overflow:hidden}
+.editor{display:grid;grid-template-columns:minmax(340px,440px) 1fr;max-width:1140px;width:95vw;height:90vh;max-height:890px;border-radius:inherit;overflow:hidden;background:#fff;box-shadow:0 32px 64px rgba(0,0,0,.32)}
+.editor .stage{background:#080706;display:flex;align-items:center;justify-content:center;position:relative;height:100%;min-height:360px;overflow:hidden;padding:16px}
+.stage-player-wrap{position:relative;width:100%;max-width:380px;height:100%;display:flex;align-items:center;justify-content:center;aspect-ratio:9/16;margin:auto}
+.stage-player-wrap video{width:100%;height:100%;object-fit:contain;border-radius:10px;display:block;transition:filter .2s ease,transform .2s ease}
+.stage-hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;z-index:4}
+.hud-time{background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);color:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.18)}
+.hud-res{background:var(--green,#347A3D);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:5px;letter-spacing:.04em;text-transform:uppercase}
+.hud-res.res-4k{background:linear-gradient(135deg,#9333EA,#C026D3);box-shadow:0 2px 6px rgba(192,38,211,0.4)}
+.stage-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;display:flex;flex-direction:column;justify-content:space-between;padding:36px 14px 44px;overflow:hidden}
+.live-hook-box{background:rgba(0,0,0,0.82);backdrop-filter:blur(4px);border:2px solid #FFD700;box-shadow:0 6px 16px rgba(0,0,0,0.6);border-radius:8px;padding:6px 12px;text-align:center;align-self:center;max-width:90%;transition:all .2s ease}
+.live-hook-box.hidden{opacity:0;transform:scale(0.85);pointer-events:none}
+.live-hook-text{font-size:14px;font-weight:900;color:#FFD700;letter-spacing:.04em;line-height:1.2;font-family:'Arial Black',Impact,sans-serif;text-transform:uppercase}
+.live-caption-box{margin-top:auto;text-align:center;padding:8px 12px;border-radius:8px;transition:all .2s ease;max-width:92%;align-self:center;line-height:1.3}
+.live-caption-box .live-spk-tag{display:none;font-size:10px;font-weight:900;letter-spacing:.06em;margin-bottom:2px}
+.live-caption-box.is-multi-speaker .live-spk-tag.spk1{display:block;color:#FFD700}
+.live-caption-box.is-multi-speaker .live-spk-tag.spk2{display:block;color:#00F0FF;margin-top:4px}
+.live-caption-box.is-multi-speaker .spk2-word{color:#00F0FF}
+
+.live-caption-box.hormozi{font-family:'Arial Black',Impact,sans-serif;font-weight:900;font-size:14px;color:#FFD700;text-shadow:0 2px 4px #000,0 0 1px #000;background:rgba(0,0,0,0.6);border-radius:6px}
+.live-caption-box.hormozi .hl{color:#FFFFFF;text-shadow:0 0 8px #FFD700}
+.live-caption-box.beast{font-family:'Arial Black',sans-serif;font-weight:900;font-size:14px;color:#00FF66;text-shadow:0 0 10px rgba(0,255,102,0.6),0 2px 4px #000;background:rgba(0,0,0,0.7);border-radius:6px}
+.live-caption-box.beast .hl{color:#FFFF00;text-shadow:0 0 10px #FFFF00}
+.live-caption-box.cyberpunk{font-family:ui-monospace,monospace;font-weight:800;font-size:13px;color:#00F0FF;text-shadow:0 0 6px #00F0FF;background:rgba(15,8,30,0.85);border:1px solid #00F0FF;border-radius:4px}
+.live-caption-box.neon{font-family:'Arial Black',sans-serif;font-size:14px;color:#FFFFFF;text-shadow:0 0 8px #00E5FF,0 0 16px #00E5FF;background:rgba(0,10,20,0.5)}
+.live-caption-box.bold{font-family:system-ui,sans-serif;font-weight:900;font-size:13px;color:#FFF;background:rgba(0,0,0,0.88);padding:6px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.25)}
+.live-caption-box.clean{font-family:system-ui,sans-serif;font-weight:700;font-size:13px;color:#FFF;text-shadow:0 2px 6px rgba(0,0,0,0.8)}
+.live-caption-box.karaoke{font-family:system-ui,sans-serif;font-weight:800;font-size:13px;color:#FFF;background:rgba(0,0,0,0.65);border-radius:6px}
+.live-caption-box.karaoke .hl{color:#FFEB3B;background:rgba(0,0,0,0.7);padding:1px 5px;border-radius:4px}
+.live-caption-box.cinematic{font-family:Georgia,serif;letter-spacing:.12em;font-size:12px;color:#F4EBD9;text-transform:uppercase;text-shadow:0 2px 8px #000}
+.live-caption-box.minimalist{font-family:system-ui,sans-serif;font-weight:500;font-size:12px;color:#E0E0E0;background:rgba(0,0,0,0.5);border-radius:4px}
+.live-caption-box.bounce{font-family:'Arial Black',sans-serif;font-size:13px;color:#FF8A45;text-shadow:0 2px 6px #000}
+.live-caption-box.hype{font-family:'Arial Black',sans-serif;font-style:italic;font-size:14px;color:#FF1744;text-shadow:0 2px 6px #000}
+
+.live-logo-overlay{position:absolute;transform:translate(-50%,-50%);pointer-events:none;transition:width .1s ease,left .1s ease,top .1s ease;z-index:2;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5))}
+
+@keyframes livePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.028); }
+}
+.anim-pulse { animation: livePulse 2.8s ease-in-out infinite !important; }
+
+.ai-moment-banner{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ai-moment-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ai-moment-badges{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ai-insight-box{background:rgba(52,122,61,0.06);border-left:3px solid var(--green,#347A3D);padding:8px 12px;border-radius:0 8px 8px 0}
+.ai-insight-title{font-size:11px;font-weight:700;color:var(--green,#347A3D);letter-spacing:.04em;display:flex;align-items:center;gap:4px;text-transform:uppercase}
+.ai-insight-text{font-size:13px;color:var(--text);margin:3px 0 0;line-height:1.4;font-style:italic}
+
+.style-chips-grid{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.style-chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .15s ease}
+.style-chip:hover{border-color:var(--dim);transform:translateY(-1px)}
+.style-chip.active{background:var(--brand-ink,#17110E);color:#fff;border-color:var(--brand-ink,#17110E);box-shadow:0 2px 8px rgba(0,0,0,0.18)}
+.style-chip .chip-dot{width:8px;height:8px;border-radius:50%;background:var(--green,#347A3D);flex:none}
+
 .editor video,.editor .stage img{width:100%;max-height:calc(100vh - 40px);aspect-ratio:9/16;object-fit:contain;display:block}
 .trimline{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center}.trimline span{font-size:12px;font-weight:600;color:var(--dim)}.trimline input{width:100%;accent-color:var(--brand);margin:0}
 .editor audio{width:100%;height:38px;border-radius:8px}
@@ -798,13 +850,14 @@ dialog[open]{animation:fadein .16s ease}
 @media (max-width:768px){
   dialog#clipdlg{width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:100dvh!important;margin:0!important;border:0!important;border-radius:0!important}
   .editor{display:flex!important;flex-direction:column!important;height:100dvh!important;max-height:100dvh!important;width:100%!important;overflow:hidden!important}
-  .editor .stage{flex:0 0 auto!important;height:34vh!important;max-height:36vh!important;min-height:170px!important;background:#0A0807!important;display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important;padding:4px 0!important;overflow:hidden!important}
-  .editor video,.editor .stage img{height:100%!important;max-height:34vh!important;width:auto!important;max-width:100%!important;aspect-ratio:9/16!important;margin:0 auto!important;object-fit:contain!important}
-  .editor .panel{flex:1 1 auto!important;height:calc(66vh - env(safe-area-inset-bottom, 0px))!important;overflow-y:auto!important;padding:12px 14px 28px!important;gap:12px!important;-webkit-overflow-scrolling:touch!important}
-  .editor .tabs{display:flex!important;gap:4px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important;flex-wrap:nowrap!important;margin:0 0 6px 0!important;padding-bottom:4px!important;border-bottom:1px solid var(--line)!important}
+  .editor .stage{flex:0 0 36vh!important;height:36vh!important;min-height:180px!important;max-height:38vh!important;background:#080706!important;display:flex!important;align-items:center!important;justify-content:center!important;position:sticky!important;top:0!important;z-index:20!important;padding:4px 0!important;overflow:hidden!important}
+  .stage-player-wrap{max-width:none!important;height:100%!important;width:auto!important}
+  .editor video,.editor .stage img{height:100%!important;max-height:36vh!important;width:auto!important;max-width:100%!important;aspect-ratio:9/16!important;margin:0 auto!important;object-fit:contain!important}
+  .editor .panel{flex:1 1 auto!important;height:calc(64vh - env(safe-area-inset-bottom, 0px))!important;overflow-y:auto!important;padding:12px 14px 70px!important;gap:12px!important;-webkit-overflow-scrolling:touch!important}
+  .editor .tabs{display:flex!important;gap:4px!important;overflow-x:auto!important;scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important;flex-wrap:nowrap!important;margin:0 0 8px 0!important;padding-bottom:4px!important;border-bottom:1px solid var(--line)!important}
   .editor .tabs::-webkit-scrollbar{display:none}
-  .editor .tabs .tabbtn{flex:1 0 auto!important;min-width:100px!important;height:38px!important;padding:0 8px!important;font-size:12px!important;justify-content:center!important;white-space:nowrap!important}
-  .clip-actions{position:sticky;bottom:0;background:#fff;padding:10px 0 calc(8px + env(safe-area-inset-bottom, 0px));margin-top:auto;border-top:1px solid var(--line);box-shadow:0 -4px 12px rgba(0,0,0,0.06);display:flex;flex-wrap:wrap;gap:8px;z-index:10}
+  .editor .tabs .tabbtn{flex:1 0 auto!important;min-width:105px!important;height:38px!important;padding:0 8px!important;font-size:12px!important;justify-content:center!important;white-space:nowrap!important}
+  .clip-actions{position:sticky!important;bottom:0!important;background:#fff!important;padding:10px 0 calc(8px + env(safe-area-inset-bottom, 0px))!important;margin-top:auto!important;border-top:1px solid var(--line)!important;box-shadow:0 -4px 12px rgba(0,0,0,0.06)!important;display:flex!important;flex-wrap:wrap!important;gap:8px!important;z-index:15!important}
   .clip-actions .btn.primary{flex:1 1 100%!important;order:-1!important;height:42px!important;font-size:14px!important;font-weight:700!important}
   .clip-actions .btn{flex:1 1 calc(50% - 4px)!important;justify-content:center!important;height:38px!important;font-size:13px!important}
   .clip-actions .btn[data-t="publish"]{flex:1 1 100%!important;margin-left:0!important;height:36px!important}
@@ -3425,36 +3478,83 @@ function drawClipDlg(full) {
   const j = jobOf(D.jid), c = j?.clips.find(x => x.id === D.cid), dlg = $("#clipdlg");
   if (!c) { if (dlg.open) dlg.close(); return; }
   const m = `/media/${j.id}/`, sig = c.status + c.version;
-  const stage = c.status === "done" ? `<video src="${m}${esc(c.file)}?v=${c.version}" poster="${m}${esc(c.cover)}?v=${c.version}" controls autoplay playsinline></video>`
+  const stage = c.status === "done" ? `<div class="stage-player-wrap">
+      <video id="stage-video" src="${m}${esc(c.file)}?v=${c.version}" poster="${m}${esc(c.cover)}?v=${c.version}" controls autoplay playsinline></video>
+      <div class="stage-hud" id="stage-hud">
+        <span class="hud-time" id="hud-time">00:00.0</span>
+        <span class="hud-res ${c.resolution === '4k' ? 'res-4k' : ''}" id="hud-res">${(c.resolution === '4k' || (c.width && c.width >= 2160)) ? '4K UHD' : '1080p'}</span>
+      </div>
+      <div class="stage-overlay" id="stage-overlay">
+        <div id="live-hook-box" class="live-hook-box ${c.hook ? '' : 'hidden'}">
+          <span id="live-hook-text" class="live-hook-text">${esc((c.hook || '').toUpperCase())}</span>
+        </div>
+        <div id="live-caption-preview" class="live-caption-box ${c.style || 'clean'} ${c.multi_speaker ? 'is-multi-speaker' : ''}" style="${c.captions === false ? 'display:none' : ''}">
+          <span class="live-spk-tag spk1">SPEAKER 1:</span>
+          <span class="live-cap-line"><span class="cap-word hl">STREAMER'S</span> <span class="cap-word">GENUINE</span> <span class="cap-word">FRUSTRATION</span></span>
+          <span class="live-spk-tag spk2">SPEAKER 2:</span>
+          <span class="live-cap-line spk2-line"><span class="cap-word spk2-word">"HIGH-STAKES</span> <span class="cap-word spk2-word hl">GAMEPLAY!"</span></span>
+        </div>
+        <img id="live-logo-overlay" class="live-logo-overlay" src="${c.overlay_file ? (m + esc(c.overlay_file)) : ''}" style="${c.overlay_file ? `display:block;width:${((c.overlay_scale ?? 0.24) * 100).toFixed(1)}%;left:${((c.overlay_x ?? 0.78) * 100).toFixed(1)}%;top:${((c.overlay_y ?? 0.82) * 100).toFixed(1)}%` : 'display:none'}" alt="Logo overlay">
+      </div>
+    </div>`
     : c.status === "error" ? `<div class="err" style="padding:20px;text-align:center">${esc(c.error || "Could not make this clip.")}</div>`
     : `<span class="making">${c.status === "rendering" ? "Making this clip…" : "Waiting its turn…"}</span>`;
   if (full) {
     dlg.innerHTML = `<div class="editor"><div class="stage" id="stage">${stage}</div>
       <div class="panel">
-        <div class="job-head" style="margin:0">
-          <div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
-          ${c.visual_energy ? `<span class="pill" style="font-size:11px;padding:2px 7px;background:rgba(52,122,61,0.12);color:var(--green);border:1px solid rgba(52,122,61,0.25);font-weight:600;display:inline-flex;align-items:center;gap:4px">${ic("bolt")} ${c.visual_energy}% Action${c.expression && c.expression !== 'neutral' ? ` · ${esc(c.expression)}` : ''}</span>` : ''}</div>
-          <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p></div>
-          <button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button>
+        <div class="ai-moment-banner">
+          <div class="ai-moment-top">
+            <div class="ai-moment-badges">
+              <span class="badge ${scoreCls(c.score)}" style="position:static;font-size:12px;padding:4px 10px">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
+              ${c.visual_energy ? `<span class="pill" style="font-size:11px;padding:3px 9px;background:rgba(52,122,61,0.12);color:var(--green,#347A3D);border:1px solid rgba(52,122,61,0.25);font-weight:700;display:inline-flex;align-items:center;gap:4px">${ic("bolt")} ${c.visual_energy}% Action${c.expression && c.expression !== 'neutral' ? ` · ${esc(c.expression)}` : ''}</span>` : ''}
+              ${(c.resolution === '4k' || (c.width && c.width >= 2160)) ? '<span class="pill res-4k" style="font-size:10px;padding:2px 7px;font-weight:700">4K UHD</span>' : '<span class="pill" style="font-size:10px;padding:2px 7px">1080p HD</span>'}
+            </div>
+            <button class="btn icon ghost" data-act="closedlg" aria-label="Close" style="width:34px;height:34px;border-radius:50%;display:grid;place-items:center">${ic("x")}</button>
+          </div>
+          ${c.reason ? `
+            <div class="ai-insight-box">
+              <div class="ai-insight-title">${ic("sparkle")} AI Moment Insight</div>
+              <p class="ai-insight-text">"${esc(c.reason)}"</p>
+            </div>` : ''}
         </div>
         ${c.render_error ? `<div class="err" role="status">Could not apply the latest edits: ${esc(c.render_error)}. The previous finished clip is still available.</div>` : ""}
 
         <!-- Organised 3-Tab Navigator -->
-        <div class="tabs" style="margin:6px 0 10px 0;gap:2px;border-bottom:1px solid var(--line)">
-          <button type="button" class="tabbtn ${(!D.cliptab || D.cliptab === 'style') ? 'on' : ''}" data-act="cliptab" data-t="style" style="height:38px;padding:0 12px;font-size:13px">${ic("scissors")}Style & Captions</button>
-          <button type="button" class="tabbtn ${D.cliptab === 'cover' ? 'on' : ''}" data-act="cliptab" data-t="cover" style="height:38px;padding:0 12px;font-size:13px">${ic("camera")}Thumbnail</button>
-          <button type="button" class="tabbtn ${D.cliptab === 'publish' ? 'on' : ''}" data-act="cliptab" data-t="publish" style="height:38px;padding:0 12px;font-size:13px">${ic("send")}Publish & Share</button>
+        <div class="tabs editor-tabs" style="margin:4px 0 10px 0;gap:4px;border-bottom:1px solid var(--line)">
+          <button type="button" class="tabbtn ${(!D.cliptab || D.cliptab === 'style') ? 'on' : ''}" data-act="cliptab" data-t="style" style="height:38px;padding:0 14px;font-size:13px;font-weight:600">${ic("scissors")}Style & Captions</button>
+          <button type="button" class="tabbtn ${D.cliptab === 'cover' ? 'on' : ''}" data-act="cliptab" data-t="cover" style="height:38px;padding:0 14px;font-size:13px;font-weight:600">${ic("camera")}Thumbnail</button>
+          <button type="button" class="tabbtn ${D.cliptab === 'publish' ? 'on' : ''}" data-act="cliptab" data-t="publish" style="height:38px;padding:0 14px;font-size:13px;font-weight:600">${ic("send")}Publish & Share</button>
         </div>
 
         <!-- Tab 1: Style & Captions -->
         <div id="cpane_style" style="${(!D.cliptab || D.cliptab === 'style') ? 'display:flex;flex-direction:column;gap:12px' : 'display:none'}">
-          <label class="f">Big text (Hook)<input data-f="hook" value="${esc(c.hook)}"></label>
+          <label class="f"><span style="display:flex;justify-content:space-between;align-items:center;font-weight:600"><span>Big text (Hook)</span><small style="color:var(--dim);font-weight:normal">Live preview on video</small></span><input data-f="hook" value="${esc(c.hook)}" placeholder="e.g. GTA VICE CITY VIBES"></label>
           <div class="two"><label class="sw"><input type="checkbox" data-f="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
             <label class="sw"><input type="checkbox" data-f="auto_emoji" ${c.auto_emoji ? "checked" : ""}>Auto-emoji</label></div>
           <div class="two"><label class="sw" title="Distinguishes speakers and highlights Speaker 2 (Guest) in Cyan"><input type="checkbox" data-f="multi_speaker" ${c.multi_speaker ? "checked" : ""} style="display:inline-flex;align-items:center;gap:6px">${ic("palette")} Multi-Speaker Colors</label>
             <label class="sw" title="Inserts viral audio sound effects (whoosh on hook, pop on punchlines)"><input type="checkbox" data-f="sfx" ${c.sfx ? "checked" : ""} style="display:inline-flex;align-items:center;gap:6px">${ic("volume")} Viral SFX (Whoosh & Pop)</label></div>
-          <div class="two"><label class="f">Caption style<select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
+          <div class="two"><label class="f"><span style="display:flex;justify-content:space-between;align-items:center;font-weight:600"><span>Caption style</span><small style="color:var(--dim);font-weight:normal">Instant live preview</small></span><select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
             <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
+          <div class="style-chips-grid">
+            ${[
+              ["clean", "Clean"],
+              ["hormozi", "Hormozi Gold"],
+              ["beast", "Beast Green"],
+              ["cyberpunk", "Cyberpunk"],
+              ["neon", "Neon Glow"],
+              ["bold", "Bold Box"],
+              ["karaoke", "Karaoke"],
+              ["bounce", "Bounce"],
+              ["hype", "Hype"],
+              ["cinematic", "Cinematic"],
+              ["minimalist", "Minimalist"]
+            ].map(([id, label]) => `
+              <button type="button" class="style-chip ${c.style === id ? 'active' : ''}" data-act="setstylepreset" data-style="${id}">
+                <span class="chip-dot"></span>
+                <span>${label}</span>
+              </button>
+            `).join("")}
+          </div>
           <p class="help">Caption styles: <b>Hormozi Gold</b> · <b>Beast Green</b> · <b>Cyberpunk</b> · <b>Karaoke</b> · <b>Minimalist</b> · Bounce · Hype · Clean · Neon Glow · Bold Box · Cinematic</p>
           <div class="two"><label class="f">Video effect<select data-f="effect">${opts({none:"Original", warm:"Warm", vivid:"Vivid", mono:"Black & white", vintage:"Vintage"}, c.effect || "none")}</select></label>
             <label class="f">Animation<select data-f="animation">${opts({none:"None", pulse:"Slow pulse"}, c.animation || "none")}</select></label></div>
@@ -3517,8 +3617,20 @@ function drawClipDlg(full) {
 
         <!-- Tab 3: Publish & Share -->
         <div id="cpane_publish" style="${D.cliptab === 'publish' ? 'display:flex;flex-direction:column;gap:12px' : 'display:none'}">
-          <label class="f">Post title<input data-f="title" value="${esc(c.title)}"></label>
-          <label class="f">Post caption & hashtags<textarea data-f="description" rows="2">${esc(c.description)}</textarea></label>
+          <label class="f">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span>Post title</span>
+              <button type="button" class="btn sm ghost" data-act="copytitle" style="padding:2px 8px;font-size:11px;height:24px">${ic("copy")} Copy title</button>
+            </div>
+            <input data-f="title" value="${esc(c.title)}">
+          </label>
+          <label class="f">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span>Post caption & hashtags</span>
+              <button type="button" class="btn sm ghost" data-act="copycaption" style="padding:2px 8px;font-size:11px;height:24px">${ic("copy")} Copy caption</button>
+            </div>
+            <textarea data-f="description" rows="2">${esc(c.description)}</textarea>
+          </label>
 
           <div id="dposts" class="row" style="gap:4px"></div>
 
@@ -3581,6 +3693,7 @@ function drawClipDlg(full) {
   bindTrimPreview();
   if (full) initThumbnailEditor(c, m);
   initPostSchedule();
+  initLivePreview(c, m);
 }
 $("#clipdlg").addEventListener("close", () => { $("#clipdlg").innerHTML = ""; D.jid = null; });
 $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
@@ -3713,6 +3826,100 @@ function initPostSchedule() {
   if (out) out.textContent = `Times use your device timezone: ${zone}. Choose a future time.`;
   const input = $("#post-at");
   if (input && !input.value) { const d = new Date(Date.now() + 3600000); d.setMinutes(Math.ceil(d.getMinutes() / 5) * 5, 0, 0); input.value = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
+}
+
+function initLivePreview(c, mediaPath) {
+  const dlg = $("#clipdlg");
+  if (!dlg) return;
+
+  const update = () => {
+    // 1. Hook text live overlay
+    const hookInp = dlg.querySelector('[data-f="hook"]');
+    const hookBox = dlg.querySelector('#live-hook-box');
+    const hookTxt = dlg.querySelector('#live-hook-text');
+    if (hookBox && hookTxt && hookInp) {
+      const v = hookInp.value.trim();
+      if (v) {
+        hookTxt.textContent = v.toUpperCase();
+        hookBox.classList.remove('hidden');
+      } else {
+        hookBox.classList.add('hidden');
+      }
+    }
+
+    // 2. Caption style & multi-speaker live update
+    const styleSel = dlg.querySelector('[data-f="style"]');
+    const capBox = dlg.querySelector('#live-caption-preview');
+    const capToggle = dlg.querySelector('[data-caption-toggle]');
+    const multiToggle = dlg.querySelector('[data-f="multi_speaker"]');
+    if (capBox) {
+      if (capToggle) capBox.style.display = capToggle.checked ? "block" : "none";
+      if (styleSel) {
+        const s = styleSel.value || "clean";
+        capBox.className = `live-caption-box ${s} ${multiToggle?.checked ? 'is-multi-speaker' : ''}`;
+        dlg.querySelectorAll('.style-chip').forEach(b => b.classList.toggle('active', b.dataset.style === s));
+      }
+    }
+
+    // 3. Video effect filter & animation pulse
+    const vid = dlg.querySelector('#stage-video') || dlg.querySelector('#stage video');
+    const effSel = dlg.querySelector('[data-f="effect"]');
+    const animSel = dlg.querySelector('[data-f="animation"]');
+    if (vid) {
+      const eff = effSel?.value || 'none';
+      const anim = animSel?.value || 'none';
+      const filters = {
+        none: 'none',
+        warm: 'sepia(0.28) saturate(1.3) brightness(1.04)',
+        vivid: 'contrast(1.25) saturate(1.45) brightness(1.02)',
+        mono: 'grayscale(1) contrast(1.2)',
+        vintage: 'sepia(0.45) contrast(1.1) brightness(0.92) saturate(1.15)'
+      };
+      vid.style.filter = filters[eff] || 'none';
+      vid.classList.toggle('anim-pulse', anim === 'pulse');
+    }
+
+    // 4. Logo overlay live update
+    const logo = dlg.querySelector('#live-logo-overlay');
+    const scale = dlg.querySelector('[data-f="overlay_scale"]')?.value;
+    const ox = dlg.querySelector('[data-f="overlay_x"]')?.value;
+    const oy = dlg.querySelector('[data-f="overlay_y"]')?.value;
+    if (logo && scale !== undefined && ox !== undefined && oy !== undefined && logo.getAttribute('src')) {
+      logo.style.display = 'block';
+      logo.style.width = (Number(scale) * 100).toFixed(1) + '%';
+      logo.style.left = (Number(ox) * 100).toFixed(1) + '%';
+      logo.style.top = (Number(oy) * 100).toFixed(1) + '%';
+    }
+
+    // 5. Resolution badge update
+    const resSel = dlg.querySelector('[data-f="resolution"]');
+    const hudRes = dlg.querySelector('#hud-res');
+    if (resSel && hudRes) {
+      const is4k = resSel.value === '4k';
+      hudRes.textContent = is4k ? '4K UHD' : resSel.value === '720p' ? '720p HD' : '1080p HD';
+      hudRes.className = 'hud-res ' + (is4k ? 'res-4k' : '');
+    }
+  };
+
+  dlg.addEventListener("input", update);
+  dlg.addEventListener("change", update);
+
+  const vid = dlg.querySelector('#stage-video') || dlg.querySelector('#stage video');
+  const hudTime = dlg.querySelector('#hud-time');
+  if (vid && hudTime) {
+    vid.addEventListener("timeupdate", () => {
+      const cur = vid.currentTime || 0;
+      const dur = vid.duration || (Number(c.end) - Number(c.start)) || 0;
+      const fmt = s => {
+        const m = Math.floor(s / 60);
+        const sec = (s % 60).toFixed(1);
+        return `${String(m).padStart(2, '0')}:${sec.padStart(4, '0')}`;
+      };
+      hudTime.textContent = `${fmt(cur)} / ${fmt(dur)}`;
+    });
+  }
+
+  update();
 }
 
 /* ============================================================ render + polling */
@@ -4310,6 +4517,29 @@ document.addEventListener("click", async e => {
       const panes = {style: $("#cpane_style"), cover: $("#cpane_cover"), publish: $("#cpane_publish")};
       Object.entries(panes).forEach(([k, el]) => { if (el) el.style.display = k === d.t ? "flex" : "none"; });
       if (d.t === "cover" && D.thumbBase) paintThumbnail();
+      return;
+    }
+    if (a === "setstylepreset") {
+      const st = d.style;
+      const sel = $('#clipdlg [data-f="style"]');
+      if (sel) {
+        sel.value = st;
+        sel.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+      return;
+    }
+    if (a === "copytitle") {
+      const t = $('#clipdlg [data-f="title"]')?.value || "";
+      if (t) {
+        try { await navigator.clipboard.writeText(t); toast("Title copied to clipboard!", "ok"); } catch (e) { toast("Failed to copy", "bad"); }
+      }
+      return;
+    }
+    if (a === "copycaption") {
+      const desc = $('#clipdlg [data-f="description"]')?.value || "";
+      if (desc) {
+        try { await navigator.clipboard.writeText(desc); toast("Caption & hashtags copied to clipboard!", "ok"); } catch (e) { toast("Failed to copy", "bad"); }
+      }
       return;
     }
     if (a === "postnow" || a === "postqueue" || a === "postschedule") {

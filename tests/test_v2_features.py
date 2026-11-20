@@ -291,6 +291,10 @@ def main():
         check("quickshare supports threads and pinterest", "threads:" in html and "pinterest:" in html)
         check("index.html has 1-click web publish buttons for threads and pinterest",
               'data-pf="threads"' in html and 'data-pf="pinterest"' in html)
+        check("index.html contains initLivePreview for real-time live editing", "function initLivePreview(" in html)
+        check("index.html contains stage HUD and live overlay layer", "stage-hud" in html and "live-hook-box" in html and "live-caption-preview" in html)
+        check("index.html contains interactive style preset chips", "style-chips-grid" in html and 'data-act="setstylepreset"' in html)
+        check("index.html has 1-click title and caption copy buttons", 'data-act="copytitle"' in html and 'data-act="copycaption"' in html)
 
         # -------------------------------------------------------------
         # 10. Facebook OAuth & Switch-to-Web Verification
