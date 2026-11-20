@@ -951,6 +951,42 @@ const clock = t => new Date(t * 1000).toLocaleString([], {weekday:"short", hour:
 const when = t => new Date(t * 1000).toLocaleString([], {month:"short", day:"numeric", hour:"2-digit", minute:"2-digit"});
 const opts = (map, val) => Object.entries(map).map(([k, v]) => `<option value="${esc(k)}"${String(k) === String(val) ? " selected" : ""}>${esc(v)}</option>`).join("");
 
+function brandLogo(pf, sz = 16) {
+  const p = (pf || "").toLowerCase();
+  const s = `width="${sz}" height="${sz}" style="vertical-align:middle;flex:none;display:inline-block"`;
+  if (p.includes("youtube") || p === "yt") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="YouTube"><path fill="#FF0000" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81z"/><polygon fill="#FFFFFF" points="9.55,15.57 15.82,12 9.55,8.43"/></svg>`;
+  }
+  if (p.includes("instagram") || p === "ig") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Instagram"><defs><radialGradient id="ig-g-${sz}" cx="10%" cy="105%" r="130%"><stop offset="0" stop-color="#FFD600"/><stop offset="0.25" stop-color="#FF7A00"/><stop offset="0.5" stop-color="#FF0069"/><stop offset="0.75" stop-color="#D300C5"/><stop offset="1" stop-color="#7638FA"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig-g-${sz})"/><path fill="#FFFFFF" d="M12 7.03a4.97 4.97 0 1 0 0 9.94 4.97 4.97 0 0 0 0-9.94zm0 8.2a3.23 3.23 0 1 1 0-6.46 3.23 3.23 0 0 1 0 6.46zm5.16-8.52a1.16 1.16 0 1 1-2.32 0 1.16 1.16 0 0 1 2.32 0z"/><path fill="none" stroke="#FFFFFF" stroke-width="1.8" d="M12 3.2c2.86 0 3.2.01 4.33.06 1.05.05 1.62.22 2 .37.5.2.86.43 1.24.8.37.38.61.74.8 1.24.15.38.32.95.37 2 .05 1.13.06 1.47.06 4.33s-.01 3.2-.06 4.33c-.05 1.05-.22 1.62-.37 2a3.3 3.3 0 0 1-.8 1.24c-.38.37-.74.61-1.24.8-.38.15-.95.32-2 .37-1.13.05-1.47.06-4.33.06s-3.2-.01-4.33-.06c-1.05-.05-1.62-.22-2-.37a3.3 3.3 0 0 1-1.24-.8c-.37-.38-.61-.74-.8-1.24-.15-.38-.32-.95-.37-2-.05-1.13-.06-1.47-.06-4.33s.01-3.2.06-4.33c.05-1.05.22-1.62.37-2 .2-.5.43-.86.8-1.24.38-.37.74-.61 1.24-.8.38-.15.95-.32 2-.37 1.13-.05 1.47-.06 4.33-.06z"/></svg>`;
+  }
+  if (p.includes("tiktok") || p === "tt") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="TikTok"><rect width="24" height="24" rx="5" fill="#010101"/><path fill="#25F4EE" d="M17.8 7.2a4.4 4.4 0 0 1-3.4-3.3V3.5h-2.4v10.5a2.2 2.2 0 0 1-4 1.3 2.2 2.2 0 0 1 1.8-3.5c.2 0 .5.03.7.1v-2.5a4.8 4.8 0 0 0-.7 0 4.8 4.8 0 0 0-4.8 4.8 4.8 4.8 0 0 0 8.3 3.4c.9-.9 1.4-2.1 1.4-3.4V8.5a6.2 6.2 0 0 0 3.6 1.2V7.3a3.7 3.7 0 0 1-.5-.1z"/><path fill="#FE2C55" d="M17.5 6.9a4.4 4.4 0 0 1-3.4-3.3V3.2h-2.4v10.5a2.2 2.2 0 0 1-4 1.3 2.2 2.2 0 0 1 1.8-3.5c.2 0 .5.03.7.1V9.1a4.8 4.8 0 0 0-.7 0 4.8 4.8 0 0 0-4.8 4.8 4.8 4.8 0 0 0 8.3 3.4c.9-.9 1.4-2.1 1.4-3.4V8.2a6.2 6.2 0 0 0 3.6 1.2V7a3.7 3.7 0 0 1-.5-.1z"/><path fill="#FFFFFF" d="M17.65 7.05a4.4 4.4 0 0 1-3.4-3.3V3.35h-2.4v10.5a2.2 2.2 0 0 1-4 1.3 2.2 2.2 0 0 1 1.8-3.5c.2 0 .5.03.7.1V9.25a4.8 4.8 0 0 0-.7 0 4.8 4.8 0 0 0-4.8 4.8 4.8 4.8 0 0 0 8.3 3.4c.9-.9 1.4-2.1 1.4-3.4V8.35a6.2 6.2 0 0 0 3.6 1.2V7.15a3.7 3.7 0 0 1-.5-.1z"/></svg>`;
+  }
+  if (p.includes("facebook") || p === "fb") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Facebook"><path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/><path fill="#FFFFFF" d="M16.828 15.543l.532-3.47h-3.328v-2.25c0-.949.465-1.874 1.956-1.874h1.704V4.996s-1.374-.235-2.686-.235c-2.741 0-4.533 1.662-4.533 4.669v2.643H7.078v3.47h3.047v8.385a12.09 12.09 0 0 0 3.75 0v-8.385h2.953z"/></svg>`;
+  }
+  if (p.includes("twitter") || p.includes("x") || p === "tw") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="X (Twitter)"><rect width="24" height="24" rx="4" fill="#000000"/><path fill="#FFFFFF" d="M18.244 4.25h2.558l-5.59 6.39 6.577 8.69H16.63l-4.033-5.27-4.62 5.27H5.42l5.98-6.836L5.09 4.25h5.305l3.646 4.82zm-.9 13.55h1.417L8.74 5.698H7.218z"/></svg>`;
+  }
+  if (p.includes("linkedin") || p === "li") {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="LinkedIn"><rect width="24" height="24" rx="4" fill="#0A66C2"/><path fill="#FFFFFF" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.3a1.64 1.64 0 1 0 0 3.28 1.64 1.64 0 0 0 0-3.28"/></svg>`;
+  }
+  if (p.includes("discord")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Discord"><rect width="24" height="24" rx="5" fill="#5865F2"/><path fill="#FFFFFF" d="M18.3 6.4a15.8 15.8 0 0 0-3.9-1.2.06.06 0 0 0-.06.03c-.17.3-.35.69-.49 1a14.6 14.6 0 0 0-4.4 0c-.14-.32-.33-.7-.5-1a.06.06 0 0 0-.06-.03 15.8 15.8 0 0 0-3.9 1.2.06.06 0 0 0-.03.02C2.6 10.1 1.9 13.7 2.2 17.3a.07.07 0 0 0 .03.05 16 16 0 0 0 4.8 2.4.06.06 0 0 0 .07-.02c.37-.5.7-1 1-1.6a.06.06 0 0 0-.03-.08 10.5 10.5 0 0 1-1.5-.7.06.06 0 0 1-.01-.1c.1-.08.2-.16.3-.24a.06.06 0 0 1 .06-.01c3.1 1.4 6.5 1.4 9.6 0a.06.06 0 0 1 .06.01c.1.08.2.16.3.24a.06.06 0 0 1-.01.1 10 10 0 0 1-1.5.7.06.06 0 0 0-.03.08c.3.6.63 1.1 1 1.6a.06.06 0 0 0 .07.02 16 16 0 0 0 4.8-2.4.06.06 0 0 0 .03-.05c.4-4.1-.7-7.7-2.8-10.9a.05.05 0 0 0-.03-.02zM8.5 15.2c-.9 0-1.7-.8-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.8 1.9-1.7 1.9zm7 0c-.9 0-1.7-.8-1.7-1.9s.8-1.9 1.7-1.9 1.7.9 1.7 1.9-.8 1.9-1.7 1.9z"/></svg>`;
+  }
+  if (p.includes("telegram")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Telegram"><path fill="#24A1DE" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.458c.538-.196 1.006.128.832.941z"/></svg>`;
+  }
+  if (p.includes("notion")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Notion"><rect width="24" height="24" rx="4" fill="#000000"/><path fill="#FFFFFF" d="M5.4 5.2c.6.5.9.5 2 .4l10.6-.6c.2 0 0-.2 0-.3L16.2 3c-.3-.3-.8-.6-1.6-.5L4.3 3.5c-.4 0-.5.3-.3.4l1.4 1.3zm.7 3v11c0 .5.3.7.9.7l11.4-.7c.6 0 .7-.4.7-.9V7.1c0-.5-.2-.7-.7-.7l-11.7.7c-.5 0-.6.3-.6.8zm10.6 1.1c.1.3 0 .7-.3.7l-.7.1v7.2c-.3.3-.7.4-1.2.4-.6 0-.9-.2-1.4-.8l-3.8-5.4v5.3l1.2.2c.1.3 0 .7-.3.7l-2.9.2c-.1-.3 0-.7.3-.7l.8-.2v-7.2l-1.1-.1c-.1-.3 0-.7.3-.7l3 .2 4 5.7v-5.2l-1-.1c-.1-.3 0-.7.3-.7l2.6-.1z"/></svg>`;
+  }
+  if (p.includes("google") || p.includes("cloud")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Google Cloud"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>`;
+  }
+  return `<svg ${s} viewBox="0 0 256 256"><path fill="currentColor" d="M128 24a104 104 0 1 0 104 104A104.11 104.11 0 0 0 128 24Zm0 192a88 88 0 1 1 88-88 88.1 88.1 0 0 1-88 88Z"/></svg>`;
+}
+
 async function api(path, opt) {
   const r = await fetch(path, opt);
   if (r.status === 401) { location.href = "/login"; throw new Error("Please sign in."); }
@@ -1753,7 +1789,8 @@ function postPills(c) {
     const dot = isPosted ? `<span style="width:6px;height:6px;border-radius:50%;background:#0E7044;display:inline-block;flex:none"></span>`
       : isFailed ? `<span style="width:6px;height:6px;border-radius:50%;background:#C5222E;display:inline-block;flex:none"></span>`
       : `<span style="width:6px;height:6px;border-radius:50%;background:#B85006;display:inline-block;flex:none"></span>`;
-    return p.url && isPosted ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener"${tip}>${dot}${txt}</a>` : `<span class="pill ${cls}"${tip}>${dot}${txt}</span>`;
+    const pfLogo = brandLogo(p.platform, 13);
+    return p.url && isPosted ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener"${tip}>${pfLogo}${dot}${txt}</a>` : `<span class="pill ${cls}"${tip}>${pfLogo}${dot}${txt}</span>`;
   }).join("");
 }
 function clipHtml(j, c) {
@@ -2033,7 +2070,7 @@ function drawOverview() {
     <div class="card"><div class="card-head"><div><h2>Post queue</h2><p class="sub">${o.paused ? "Paused. Recording and clipping carry on; nothing is posted." : "Queued clips go out at their scheduled time."}</p></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a class="btn sm ghost" href="/api/calendar/feed.ics" download="clipsart-calendar.ics" title="Subscribe with Google Calendar, Apple Calendar, or Outlook">${ic("clock")}Subscribe Calendar (.ics)</a><button class="btn ${o.paused ? "primary" : ""}" data-act="pause">${ic(o.paused ? "play" : "pause")}${o.paused ? "Resume posting" : "Pause all posting"}</button></div></div>
       ${o.posts.length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
-      ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "–"}</td>
+      ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account"><span style="display:inline-flex;align-items:center;gap:6px">${brandLogo(p.platform, 15)}<span>${esc(p.account_name)}</span></span></td><td data-l="Views" class="num">${p.views ?? "–"}</td>
         <td class="c-act" style="text-align:right">${p.status === "scheduled" ? `<a class="btn sm ghost" href="/api/calendar/google-url/${p.id}" target="_blank" rel="noopener" title="Add reminder to Google Calendar">${ic("clock")}Google Cal</a> <button class="btn sm" data-act="pcancel" data-id="${p.id}">Cancel</button>` : p.status === "failed" ? `<button class="btn sm" data-act="pretry" data-id="${p.id}">Retry</button>` : ""}</td></tr>`).join("")}</table></div>`
       : `<p class="help">Nothing queued or posted yet.</p>`}</div>`);
 }
@@ -2174,7 +2211,7 @@ async function drawSettings() {
       const listOf = arr => arr.length ? `<div class="applist">${arr.map(a => {
         const isApi = a.has_api || (a.access_token && a.access_token !== "web");
         const pill = isApi ? `<span class="pill ok">⚡ API Auto-Post</span>` : `<span class="pill">🌐 Web Shortcut</span>`;
-        return `<div>${pill}<b>${esc(a.name)}</b><span class="sub">${esc(a.detail || "")}</span>
+        return `<div>${pill}<span style="display:inline-flex;align-items:center;gap:6px">${brandLogo(a.platform, 16)}<b>${esc(a.name)}</b></span><span class="sub">${esc(a.detail || "")}</span>
           ${a.url ? `<a class="btn sm ghost" href="${esc(a.url)}" target="_blank" rel="noopener" title="Open in browser">${ic("upright")}Open</a>` : ""}
           <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}">Disconnect</button></div>`;
       }).join("")}</div>` : "";
@@ -2448,19 +2485,20 @@ function drawClipDlg(full) {
               <small style="color:var(--text-sub);font-weight:normal">(Copies caption, downloads MP4 & opens upload screen)</small>
             </div>
             <div class="pub-grid">
-              <button class="btn sm" data-act="quickshare" data-pf="instagram" title="Copy caption & open Instagram Create">${ic("upright")}Instagram Reels</button>
-              <button class="btn sm" data-act="quickshare" data-pf="tiktok" title="Copy caption & open TikTok Upload Studio">${ic("upright")}TikTok</button>
-              <button class="btn sm" data-act="quickshare" data-pf="facebook" title="Copy caption & open Facebook Reels">${ic("upright")}Facebook Reels</button>
-              <button class="btn sm" data-act="quickshare" data-pf="twitter" title="Copy caption & open X Composer">${ic("upright")}X (Twitter)</button>
-              <button class="btn sm" data-act="quickshare" data-pf="linkedin" title="Copy caption & open LinkedIn Feed">${ic("upright")}LinkedIn Video</button>
+              <button class="btn sm" data-act="quickshare" data-pf="youtube" title="Copy caption & open YouTube Shorts Studio">${brandLogo("youtube", 16)}YouTube Shorts</button>
+              <button class="btn sm" data-act="quickshare" data-pf="instagram" title="Copy caption & open Instagram Create">${brandLogo("instagram", 16)}Instagram Reels</button>
+              <button class="btn sm" data-act="quickshare" data-pf="tiktok" title="Copy caption & open TikTok Upload Studio">${brandLogo("tiktok", 16)}TikTok</button>
+              <button class="btn sm" data-act="quickshare" data-pf="facebook" title="Copy caption & open Facebook Reels">${brandLogo("facebook", 16)}Facebook Reels</button>
+              <button class="btn sm" data-act="quickshare" data-pf="twitter" title="Copy caption & open X Composer">${brandLogo("twitter", 16)}X (Twitter)</button>
+              <button class="btn sm" data-act="quickshare" data-pf="linkedin" title="Copy caption & open LinkedIn Feed">${brandLogo("linkedin", 16)}LinkedIn Video</button>
             </div>
           </div>
 
           <div class="clip-export-bar">
             ${c.status === "done" ? `<a class="btn primary sm" href="${m}${esc(c.file)}?download=1">${ic("down")}Download MP4 ${(c.resolution === '4k' || (c.width && c.width >= 2160)) ? '<span class="pill res-4k" style="font-size:10px;padding:1px 6px;margin-left:4px">4K</span>' : ''}</a>
-            <button class="btn ghost sm" data-act="communitydrop" title="Drop video directly to configured Discord or Telegram">${ic("send")}Drop MP4</button>
-            <button class="btn ghost sm" data-act="notionsync" title="Sync clip to Notion Kanban board">${ic("link")}Notion</button>
-            <button class="btn ghost sm" data-act="cloudexport" title="Save clip to configured Google Drive / Dropbox folder">${ic("folder")}Save to Cloud</button>` : ""}
+            <button class="btn ghost sm" data-act="communitydrop" title="Drop video directly to configured Discord or Telegram">${brandLogo("discord", 14)}Drop MP4</button>
+            <button class="btn ghost sm" data-act="notionsync" title="Sync clip to Notion Kanban board">${brandLogo("notion", 14)}Notion</button>
+            <button class="btn ghost sm" data-act="cloudexport" title="Save clip to configured Google Drive / Dropbox folder">${brandLogo("google", 14)}Save to Cloud</button>` : ""}
             <button class="btn sm" data-act="copy" data-j="${j.id}" data-c="${esc(c.id)}">${ic("copy")}Copy post text</button>
           </div>
         </div>
@@ -3018,13 +3056,14 @@ document.addEventListener("click", async e => {
         aDl.remove();
       }
       const urls = {
+        youtube: "https://studio.youtube.com/channel/mine/videos/upload?d=ud",
         instagram: "https://www.instagram.com/create/style/",
         tiktok: "https://www.tiktok.com/creator-center/upload",
         facebook: "https://www.facebook.com/reels/create/",
         twitter: "https://x.com/compose/post?text=" + encodeURIComponent(text.slice(0, 270)),
         linkedin: "https://www.linkedin.com/feed/?shareActive=true&text=" + encodeURIComponent(text.slice(0, 1000))
       };
-      const pfNames = {instagram:"Instagram Reels", tiktok:"TikTok", facebook:"Facebook Reels", twitter:"X (Twitter)", linkedin:"LinkedIn Video"};
+      const pfNames = {youtube:"YouTube Shorts", instagram:"Instagram Reels", tiktok:"TikTok", facebook:"Facebook Reels", twitter:"X (Twitter)", linkedin:"LinkedIn Video"};
       if (urls[pf]) window.open(urls[pf], "_blank");
       toast(`Caption copied & video downloading! Opening ${pfNames[pf] || pf} studio...`, "ok");
       return;
