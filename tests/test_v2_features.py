@@ -292,6 +292,41 @@ def main():
         check("index.html has 1-click web publish buttons for threads and pinterest",
               'data-pf="threads"' in html and 'data-pf="pinterest"' in html)
 
+        # -------------------------------------------------------------
+        # 10. Facebook OAuth & Switch-to-Web Verification
+        # -------------------------------------------------------------
+        # Attempt to connect with a 32-char App Secret should fail with clear guidance
+        fb_secret_res = client.post("/api/accounts/direct", json={
+            "platform": "facebook",
+            "name": "@test_fb",
+            "token": "2d148b36ec0fc3fa9c5eace2d7cc75fc",
+            "extra_id": "1815181479750299"
+        })
+        check("connect_direct blocks 32-char Facebook App Secret",
+              fb_secret_res.status_code == 400 and "App Secret" in fb_secret_res.json()["detail"])
+
+        # Connect Facebook in 1-Click Web Publish mode
+        fb_web_res = client.post("/api/accounts/direct", json={
+            "platform": "facebook",
+            "name": "vishwajeetsrk",
+            "token": "web",
+            "extra_id": "1815181479750299"
+        })
+        check("connect_direct connects Facebook in 1-Click Web mode",
+              fb_web_res.status_code == 200 and fb_web_res.json()["ok"])
+        fb_acc_id = fb_web_res.json()["account"]["id"]
+
+        # Switch account to web mode
+        switch_res = client.post(f"/api/accounts/{fb_acc_id}/switch-web")
+        check("POST /api/accounts/{id}/switch-web succeeds",
+              switch_res.status_code == 200 and switch_res.json()["account"]["access_token"] == "web")
+
+        # Cloud Storage Brand SVG verification
+        check("Google Drive brand logo has authentic 3-color paths",
+              "#FFBA00" in html and "#0066DA" in html and "#00AC47" in html)
+        check("Dropbox brand logo is present", "#0061FF" in html and "aria-label=\"Dropbox\"" in html)
+        check("Cloud presets present in UI", "setcloudpreset" in html and "cloud_dir_input" in html)
+
         print("\nAll V2 feature tests completed successfully!")
     finally:
         import shutil

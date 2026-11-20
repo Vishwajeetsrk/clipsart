@@ -1056,13 +1056,13 @@ function brandLogo(pf, sz = 16) {
     return `<svg ${s} viewBox="0 0 24 24" aria-label="Notion"><rect width="24" height="24" rx="4" fill="#000000"/><path fill="#FFFFFF" d="M5.4 5.2c.6.5.9.5 2 .4l10.6-.6c.2 0 0-.2 0-.3L16.2 3c-.3-.3-.8-.6-1.6-.5L4.3 3.5c-.4 0-.5.3-.3.4l1.4 1.3zm.7 3v11c0 .5.3.7.9.7l11.4-.7c.6 0 .7-.4.7-.9V7.1c0-.5-.2-.7-.7-.7l-11.7.7c-.5 0-.6.3-.6.8zm10.6 1.1c.1.3 0 .7-.3.7l-.7.1v7.2c-.3.3-.7.4-1.2.4-.6 0-.9-.2-1.4-.8l-3.8-5.4v5.3l1.2.2c.1.3 0 .7-.3.7l-2.9.2c-.1-.3 0-.7.3-.7l.8-.2v-7.2l-1.1-.1c-.1-.3 0-.7.3-.7l3 .2 4 5.7v-5.2l-1-.1c-.1-.3 0-.7.3-.7l2.6-.1z"/></svg>`;
   }
   if (p.includes("dropbox")) {
-    return `<svg ${s} viewBox="0 0 24 24" aria-label="Dropbox"><path fill="#0061FF" d="M6 2.5 0 6.64l6 4.14 6-4.14L6 2.5zm12 0-6 4.14 6 4.14 6-4.14L18 2.5zM0 14.92l6 4.14 6-4.14-6-4.14L0 14.92zm18-4.14-6 4.14 6 4.14 6-4.14-6-4.14zm-6 9.17-6 4.14 6 4.14 6-4.14-6-4.14z"/></svg>`;
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Dropbox"><path fill="#0061FF" d="M6 2l-6 4 6 4 6-4-6-4zm12 0l-6 4 6 4 6-4-6-4zM0 14l6 4 6-4-6-4-6 4zm18-4l-6 4 6 4 6-4-6-4zm-6 4.9l-6 3.9 6 3.9 6-3.9-6-3.9z"/></svg>`;
   }
   if (p.includes("onedrive")) {
     return `<svg ${s} viewBox="0 0 24 24" aria-label="OneDrive"><path fill="#0078D4" d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>`;
   }
   if (p.includes("gdrive") || p.includes("drive")) {
-    return `<svg ${s} viewBox="0 0 24 24" aria-label="Google Drive"><path fill="#0066DA" d="M8.07 19.78 3.37 11.63l4.04-7h9.4l-4.04 7z"/><path fill="#00AC47" d="M12.74 3.63h8.08l-4.7 8.14h-8.08z"/><path fill="#FFBA00" d="M20.82 11.77l-4.7 8.14H8.04l4.7-8.14z"/></svg>`;
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Google Drive"><path fill="#FFBA00" d="M7.71 3.5h8.58l4.29 7.42h-8.58L7.71 3.5z"/><path fill="#0066DA" d="M3.42 10.92l4.29-7.42 4.29 7.42-4.29 7.42L3.42 10.92z"/><path fill="#00AC47" d="M16.29 18.34H7.71l4.29-7.42h8.58l-4.29 7.42z"/></svg>`;
   }
   if (p.includes("google") || p.includes("cloud")) {
     return `<svg ${s} viewBox="0 0 24 24" aria-label="Google Cloud"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>`;
@@ -3070,9 +3070,10 @@ async function drawSettings() {
 
       const renderAccountItem = (a, isExpired = false) => {
         const isApi = a.has_api || (a.access_token && a.access_token !== "web");
+        const hasErr = isExpired || a.status === "expired" || Boolean(a.error);
         const perms = a.permissions || ["Publish video clips", "Read basic account info"];
-        const statusPill = isExpired
-          ? `<span class="pill warn" style="font-size:11px">${ic("warn")} Token Expired · Reconnect Required</span>`
+        const statusPill = hasErr
+          ? `<span class="pill warn" style="font-size:11px">${ic("warn")} Token Expired · Action Required</span>`
           : isApi
             ? `<span class="pill ok" style="font-size:11px">${ic("bolt")} API Auto-Post · Token Active</span>`
             : `<span class="pill" style="font-size:11px">${ic("globe")} 1-Click Fast Web Publish</span>`;
@@ -3092,10 +3093,17 @@ async function drawSettings() {
                   <span style="font-size:12px;color:var(--dim);display:block;margin-top:2px">
                     ${esc(a.label || a.platform)} &nbsp;·&nbsp; ${esc(a.detail || "")}
                   </span>
+                  ${a.error ? `<div class="pill warn" style="font-size:11px;margin-top:6px;max-width:540px;white-space:normal;line-height:1.4;text-align:left">${ic("warn")} ${esc(a.error)}</div>` : ""}
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:6px">
-                ${isExpired ? `<button class="btn sm primary" data-act="directconnect" data-p="${esc(a.platform)}">${ic("bolt")}Renew / Reconnect</button>` : `<button class="btn sm" data-act="acctest" data-id="${esc(a.id)}" title="Verify account connection status">${ic("bolt")}Test Connection</button>`}
+                ${hasErr ? `
+                  <button class="btn sm primary" data-act="switchtoweb" data-id="${esc(a.id)}" title="Convert account to 1-Click Fast Web Publish shortcut">${ic("globe")}Switch to 1-Click Web</button>
+                  <button class="btn sm" data-act="directconnect" data-p="${esc(a.platform)}" title="Renew or replace API token">${ic("bolt")}Renew Token</button>
+                ` : `
+                  ${isApi ? `<button class="btn sm ghost" data-act="switchtoweb" data-id="${esc(a.id)}" title="Switch from API token to 1-Click Fast Web shortcut">${ic("globe")}Switch to Web</button>` : ""}
+                  <button class="btn sm" data-act="acctest" data-id="${esc(a.id)}" title="Verify account connection status">${ic("bolt")}Test Connection</button>
+                `}
                 ${a.url ? `<a class="btn sm ghost" href="${esc(a.url)}" target="_blank" rel="noopener" title="Open profile in browser">${ic("upright")}Open</a>` : ""}
                 <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}" style="color:var(--bad, #E53935)" title="Disconnect account">${ic("trash")}Disconnect</button>
               </div>
@@ -3305,10 +3313,11 @@ async function drawSettings() {
           <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:20px">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
               <div style="display:flex;align-items:center;gap:12px">
-                <div style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px">
+                <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 12px">
                   ${brandLogo("gdrive", 20)}
                   ${brandLogo("dropbox", 20)}
                   ${brandLogo("onedrive", 20)}
+                  ${brandLogo("harddrive", 20)}
                 </div>
                 <div>
                   <h2 style="font-size:16px;font-weight:700;color:var(--text);margin:0">Cloud Storage Auto-Backup (Google Drive / Dropbox)</h2>
@@ -3320,12 +3329,22 @@ async function drawSettings() {
               </span>
             </div>
 
+            <div style="margin-bottom:12px">
+              <span style="font-size:12px;font-weight:600;color:var(--dim);display:block;margin-bottom:6px">Quick Cloud Presets:</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button type="button" class="btn sm ghost" data-act="setcloudpreset" data-val="C:\\Users\\Vishwajeet\\Google Drive\\Clipsart" style="font-size:12px">${brandLogo("gdrive", 14)} Google Drive</button>
+                <button type="button" class="btn sm ghost" data-act="setcloudpreset" data-val="C:\\Users\\Vishwajeet\\Dropbox\\Clipsart" style="font-size:12px">${brandLogo("dropbox", 14)} Dropbox</button>
+                <button type="button" class="btn sm ghost" data-act="setcloudpreset" data-val="C:\\Users\\Vishwajeet\\OneDrive\\Clipsart" style="font-size:12px">${brandLogo("onedrive", 14)} OneDrive</button>
+                <button type="button" class="btn sm ghost" data-act="setcloudpreset" data-val="C:\\Users\\Vishwajeet\\Videos\\Clipsart-Backup" style="font-size:12px">${brandLogo("harddrive", 14)} Local Folder</button>
+              </div>
+            </div>
+
             <div class="fields" style="display:grid;grid-template-columns:1fr;gap:14px">
               <label class="f">
                 <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600">
-                  ${brandLogo("google", 15)} Cloud sync directory path
+                  ${brandLogo("gdrive", 15)} Cloud sync directory path
                 </span>
-                <input data-s="cloud_sync_folder" value="${esc(s.cloud_sync_folder || '')}" placeholder="e.g. C:\\Users\\Name\\Google Drive\\Clips or /Users/name/Dropbox/Clips" autocomplete="off" spellcheck="false">
+                <input id="cloud_dir_input" data-s="cloud_sync_folder" value="${esc(s.cloud_sync_folder || '')}" placeholder="e.g. C:\\Users\\Name\\Google Drive\\Clips or /Users/name/Dropbox/Clips" autocomplete="off" spellcheck="false">
                 <small class="hint" style="font-size:11px;color:var(--dim)">Any local directory synced with Google Drive for Desktop, Dropbox, or Microsoft OneDrive</small>
               </label>
             </div>
@@ -3344,7 +3363,7 @@ async function saveSettings() { const d = {}; $$("#sform [data-s]").forEach(i =>
 function openDirectConnect(pf) {
   const dlg = $("#formdlg");
   const names = {
-    facebook: ["Facebook Reels & Pages", "Connect a Facebook Page to post vertical Reels.", "Page Name or Handle", "e.g. @ClipsartOfficial or Clipsart Page", "Page ID (Optional)", "e.g. 104829104810293", "Page Access Token (Optional for 24/7 background posting)", "EAAB...", "Optional: Enter a Page Access Token with pages_manage_posts scope to enable automated background posting."],
+    facebook: ["Facebook Reels & Pages", "Connect a Facebook Page to post vertical Reels.", "Page Name or Handle", "e.g. @ClipsartOfficial or Clipsart Page", "Page ID (Optional)", "e.g. 1815181479750299", "Page Access Token (Optional - Starts with EAA...)", "EAAB... (Do NOT paste 32-char App Secret)", "Optional: Enter a Meta Page Access Token (starts with 'EAA...'). If you don't have one, leave this empty for 1-Click Fast Web Publish!"],
     twitter: ["X / Twitter", "Connect an X (Twitter) account to post video clips.", "X Handle / Username", "e.g. @clipsart", "", "", "Bearer Token / API Key (Optional)", "AAAAAAAAAAAAAAAAAAAAA...", "Optional: Generate a Bearer Token in your X Developer Portal to enable automated background posting."],
     linkedin: ["LinkedIn Video", "Connect a LinkedIn profile or company page.", "Account Name / Profile", "e.g. VishwaJeet SrK", "Person URN / Member ID (Optional)", "e.g. urn:li:person:me or urn:li:organization:123", "OAuth Access Token (Optional)", "AQV...", "Optional: Generate an OAuth token with w_member_social scope to enable automated background posting."],
     instagram: ["Instagram Reels", "Connect an Instagram Creator or Business account in 1 click.", "Instagram Username / Handle", "e.g. @clipsart", "", "", "User Access Token (Optional)", "IGQV...", "Optional: Paste a Meta token with instagram_business_content_publish scope for automated background posting."],
@@ -3380,6 +3399,10 @@ function openDirectConnect(pf) {
     let name = $("#dc_name").value.trim();
     const token = $("#dc_token") ? $("#dc_token").value.trim() : "";
     const extra_id = $("#dc_extra") ? $("#dc_extra").value.trim() : "";
+    if (pf === "facebook" && token && token.length === 32 && /^[a-fA-F0-9]{32}$/.test(token)) {
+      toast("The token entered is a 32-character App Secret. Meta Page Access Tokens start with 'EAA...'. Leave it empty for 1-Click Fast Web Publish!", "bad");
+      return;
+    }
     if (!name && !token) {
       name = `@${pf}_creator`;
     }
@@ -4075,6 +4098,28 @@ document.addEventListener("click", async e => {
         toast("Connection test failed: " + (err.message || err), "bad");
       } finally {
         if (b) { b.disabled = false; b.innerHTML = orig; }
+      }
+      return;
+    }
+    if (a === "switchtoweb") {
+      const aid = d.id;
+      b.disabled = true;
+      try {
+        const res = await api(`/api/accounts/${aid}/switch-web`, {method: "POST"});
+        toast(res.message || "Converted to 1-Click Fast Web shortcut!", "ok");
+        await drawSettings();
+      } catch (err) {
+        toast("Failed to switch account: " + (err.message || err), "bad");
+        b.disabled = false;
+      }
+      return;
+    }
+    if (a === "setcloudpreset") {
+      const inp = $("#cloud_dir_input") || $("input[data-s='cloud_sync_folder']");
+      if (inp) {
+        inp.value = d.val || "";
+        inp.focus();
+        toast("Cloud sync preset loaded! Click 'Save settings' to save.", "ok");
       }
       return;
     }

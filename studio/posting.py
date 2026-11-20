@@ -225,9 +225,25 @@ def _post(p):
         if p.get("creator"):
             creators.log(p["creator"], f"Posted to {acc.get('name', 'account')}: {title}")
     except Exception as e:  # noqa: BLE001
+        err_msg = str(e)
+        is_oauth_error = any(term in err_msg.lower() for term in (
+            "code\": 190", "code\":190", "oauthexception", "invalid oauth", "cannot parse access token",
+            "invalid_grant", "token expired", "unauthorized", "401 unauthorized"
+        ))
         p["tries"] = p.get("tries", 0) + 1
-        p["error"] = str(e)[-300:]
-        if p["tries"] < 3 and clip and acc:
+        p["error"] = err_msg[-300:]
+        if is_oauth_error:
+            p["status"] = "failed"
+            p["tries"] = 3
+            p["error"] = "Meta Authentication Error (Code 190): Invalid OAuth access token. Please update Page Access Token in Settings or switch to 1-Click Fast Web Publish."
+            if acc:
+                acc["status"] = "expired"
+                acc["error"] = "OAuth access token expired or invalid (Meta Code 190)"
+                try:
+                    accounts._put(acc)
+                except Exception:
+                    pass
+        elif p["tries"] < 3 and clip and acc:
             p.update(status="scheduled", due_at=time.time() + 600)  # try again in 10 minutes
         else:
             p["status"] = "failed"

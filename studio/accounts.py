@@ -443,8 +443,63 @@ def test_account(aid: str) -> dict:
             acc["status"] = "expired"
             _put(acc)
             return {"ok": False, "status": "expired", "mode": "api", "message": f"TikTok token expired: {e}"}
+    elif platform == "facebook":
+        tok = acc.get("access_token", "")
+        page_id = acc.get("page_id") or "me"
+        try:
+            r = httpx.get(
+                f"https://graph.facebook.com/v19.0/{page_id}",
+                params={"fields": "id,name", "access_token": tok},
+                timeout=15
+            )
+            if r.status_code >= 400:
+                err_data = r.json().get("error", {})
+                msg = err_data.get("message", f"HTTP {r.status_code}")
+                code = err_data.get("code")
+                acc["status"] = "expired"
+                acc["error"] = f"Meta Error {code}: {msg}"
+                _put(acc)
+                return {
+                    "ok": False,
+                    "status": "expired",
+                    "mode": "api",
+                    "message": f"Facebook Page Access Token expired or invalid (Meta Error {code}): {msg}"
+                }
+            data = r.json()
+            acc["status"] = "active"
+            acc["error"] = None
+            _put(acc)
+            return {
+                "ok": True,
+                "status": "active",
+                "mode": "api",
+                "message": f"Facebook Graph API connection active for Page '{data.get('name', acc.get('name'))}'!"
+            }
+        except Exception as e:
+            acc["status"] = "expired"
+            acc["error"] = str(e)
+            _put(acc)
+            return {
+                "ok": False,
+                "status": "expired",
+                "mode": "api",
+                "message": f"Facebook connection check failed: {e}"
+            }
     else:
         return {"ok": True, "status": "active", "mode": "api", "message": f"{PLATFORM_NAMES.get(platform, platform)} API connection verified and ready to post!"}
+
+
+def switch_to_web(aid: str) -> dict:
+    """Converts an account with an expired or broken API token into a 1-Click Fast Web shortcut."""
+    acc = get(aid)
+    if not acc:
+        raise ValueError("Account not found")
+    acc["access_token"] = "web"
+    acc["status"] = "active"
+    acc["detail"] = "1-Click Web Shortcut (Manual Upload)"
+    acc["error"] = None
+    _put(acc)
+    return acc
 
 
 def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> dict:
@@ -452,15 +507,24 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
     if platform == "facebook":
         page_id = extra_id or "page"
         acc_name = name or f"Facebook Page ({page_id})"
+        clean_tok = (token or "").strip()
+        if clean_tok and clean_tok != "web":
+            # Check if user accidentally entered a 32-character Facebook App Secret instead of a Page Access Token
+            if len(clean_tok) == 32 and re.fullmatch(r"[a-fA-F0-9]{32}", clean_tok):
+                raise ValueError(
+                    "The token entered is a 32-character Facebook App Secret, NOT a Page Access Token. "
+                    "Meta Page Access Tokens begin with 'EAA...'. "
+                    "To connect for 1-Click Fast Web Publish without tokens, leave the token field empty or type 'web'."
+                )
         acc = {
             "id": aid,
             "platform": "facebook",
             "name": acc_name,
             "page_id": page_id,
-            "access_token": token or "web",
+            "access_token": clean_tok or "web",
             "added": time.time(),
             "status": "active",
-            "detail": "1-Click Web Shortcut (Manual Upload)" if token in ("web", "") else (f"Page ID: {page_id}" if page_id != "page" else "Facebook Reels API"),
+            "detail": "1-Click Web Shortcut (Manual Upload)" if clean_tok in ("web", "") else (f"Page ID: {page_id}" if page_id != "page" else "Facebook Reels API"),
             "url": f"https://www.facebook.com/{page_id}" if (page_id != "page" and not page_id.startswith("@")) else "https://business.facebook.com"
         }
     elif platform == "twitter":

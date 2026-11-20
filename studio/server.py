@@ -1677,6 +1677,17 @@ def test_account(aid: str):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/accounts/{aid}/switch-web")
+def account_switch_web(aid: str):
+    try:
+        acc = accounts.switch_to_web(aid)
+        return {"ok": True, "account": acc, "message": f"{acc.get('name')} converted to 1-Click Fast Web shortcut!"}
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
 @app.delete("/api/accounts/{aid}")
 def remove_account(aid: str):
     accounts.remove(aid)
