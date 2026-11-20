@@ -38,7 +38,7 @@ def _quiet(fn):
 
 app = FastAPI(title="Clipsart", docs_url=None, redoc_url=None, openapi_url=None)
 WEB = config.ROOT / "web"
-OPEN = ("/api/auth/", "/pub/", "/api/public", "/auth/google/", "/auth/verify", "/brand/", "/assets/", "/healthz", "/favicon.ico", "/robots.txt", "/sitemap.xml")
+OPEN = ("/api/auth/", "/pub/", "/api/public", "/auth/google/", "/auth/verify", "/brand/", "/assets/", "/healthz", "/favicon.ico", "/robots.txt", "/sitemap.xml", "/manifest.json", "/sw.js")
 PAGES = {"/": "landing.html", "/login": "auth.html", "/signup": "auth.html", "/reset": "reset.html",
          "/privacy": "legal.html", "/terms": "legal.html", "/acceptable-use": "legal.html"}
 VIDEO_TYPES = {".mp4", ".mov", ".mkv", ".webm", ".m4v", ".ts", ".flv"}
@@ -445,6 +445,22 @@ def asset(name: str):
 @app.get("/favicon.ico")
 def favicon():
     return RedirectResponse("/brand/favicon.svg", 308)
+
+
+@app.get("/manifest.json")
+def manifest():
+    f = WEB / "manifest.json"
+    if not f.is_file():
+        raise HTTPException(404)
+    return FileResponse(f, media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+def service_worker():
+    f = WEB / "sw.js"
+    if not f.is_file():
+        raise HTTPException(404)
+    return FileResponse(f, media_type="application/javascript", headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"})
 
 
 # ================================================================ sign up, sign in, sign out
@@ -1605,6 +1621,19 @@ def ai_test(request: Request):
 @app.get("/api/overview")
 def overview():
     return posting.overview()
+
+
+# ================================================================ analytics
+@app.get("/api/analytics")
+def get_analytics():
+    from . import analytics
+    return analytics.summary()
+
+
+@app.post("/api/analytics/refresh")
+def refresh_analytics():
+    from . import analytics
+    return analytics.refresh()
 
 
 @app.get("/api/settings")

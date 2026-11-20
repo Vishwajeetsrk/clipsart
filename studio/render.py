@@ -193,7 +193,7 @@ def _hook_events(hook, dur, y, out_w=W):
     return ev
 
 
-def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, auto_emoji=False, out_w=W, out_h=H) -> str:
+def build_ass(words, start, end, hook, style_name, highlight, hook_y, cap_y, auto_emoji=False, out_w=W, out_h=H, multi_speaker=False) -> str:
     st = STYLES.get(style_name, STYLES["bounce"])
     scale = out_w / W
     font_size = int(round(st["size"] * scale))
@@ -260,10 +260,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             x += wd + gap
             a = max(g_start, w["s"] - start)
             b = (g[i + 1]["s"] - start) if i + 1 < len(g) else g_end
-            base = st["strong"] if _key(w["w"]) in strong else st["base"]
-            if a - g_start >= 0.02:
-                ev.append(f"Dialogue: 1,{_ts(g_start)},{_ts(a)},Cap,,0,0,0,,{{{pos}\\c&H{base}&}}{t}")
-            active = st["active"]
+            spk = w.get("speaker", 1)
+            if multi_speaker and spk == 2:
+                base = "FFFF00"   # Cyan in ASS format (&HBBGGRR&)
+                active = "00D7FF"  # Bright Gold punch
+            else:
+                base = st["strong"] if _key(w["w"]) in strong else st["base"]
+                active = st["active"]
             if b - a >= 0.02:
                 ev.append(f"Dialogue: 2,{_ts(a)},{_ts(b)},Cap,,0,0,0,,{{{pos}\\c&H{active}&\\fscx94\\fscy94"
                           f"\\t(0,70,\\fscx{p}\\fscy{p})\\t(70,170,\\fscx100\\fscy100)}}{t}")
@@ -334,7 +337,7 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     hook_y = _hook_y(layout, hook_y, face, out_w=out_w)
     ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
                     clip.get("highlight_words", []), hook_y, cap_y, auto_emoji=clip.get("auto_emoji", False),
-                    out_w=out_w, out_h=out_h)
+                    out_w=out_w, out_h=out_h, multi_speaker=clip.get("multi_speaker", False))
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
     # folders easily reaches. Inside the work folder every name is short and relative (a drive colon would also
@@ -352,7 +355,8 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
                           effect=clip.get("effect", "none"), animation=clip.get("animation", "none"),
                           ducking=clip.get("ducking", True), fade_in=clip.get("fade_in", 0.35),
                           fade_out=clip.get("fade_out", 0.45), out_w=out_w, out_h=out_h,
-                          bitrate=bitrate, crf=crf, res_key=res_key)
+                          bitrate=bitrate, crf=crf, res_key=res_key,
+                          enable_sfx=clip.get("sfx", False), words=words, hook=clip.get("hook", ""))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -361,7 +365,7 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
                music_path=None, source_volume=1.0, music_volume=0.25, preview_size=None, overlay_path=None,
                overlay_scale=0.24, overlay_x=0.78, overlay_y=0.82, effect="none", animation="none",
                ducking=True, fade_in=0.35, fade_out=0.45, out_w=W, out_h=H, bitrate="6M", crf="21",
-               res_key="1080p") -> dict:
+               res_key="1080p", enable_sfx=False, words=None, hook="") -> dict:
     global _qsv_ok, _nvenc_ok, _vt_ok, _amf_ok, _mf_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
@@ -397,9 +401,23 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
         pw, ph = (int(v) for v in preview_size)
         fc += f";{vmap}scale={pw}:{ph}[previewv]"
         vmap = "[previewv]"
+
+    sfx_file = work / "sfx.wav"
+    has_sfx = False
+    if enable_sfx:
+        try:
+            from . import sfx
+            events = sfx.plan_sfx_events(words if words else [], hook, duration)
+            if events:
+                has_sfx = sfx.generate_sfx_track(events, duration, sfx_file)
+        except Exception:
+            has_sfx = False
+
     base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{duration:.2f}", "-i", str(src)]
+    cur_inputs = 1
     if overlay_path and Path(overlay_path).is_file():
         base += ["-loop", "1", "-i", str(work / ("overlay" + Path(overlay_path).suffix.lower()))]
+        cur_inputs += 1
     music_path = Path(music_path) if music_path else None
     if music_path and music_path.is_file():
         source_volume = max(0.0, min(2.0, float(source_volume)))
@@ -407,23 +425,33 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
         fin = max(0.0, min(5.0, float(fade_in if fade_in is not None else 0.35)))
         fout = max(0.0, min(5.0, float(fade_out if fade_out is not None else 0.45)))
         fout_st = max(0.0, duration - fout)
+        music_idx = cur_inputs
+        cur_inputs += 1
+        base += ["-stream_loop", "-1", "-i", str(music_path)]
+        a_target = "[amixpre]" if has_sfx else "[a]"
+        norm_suffix = "" if has_sfx else ",alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11"
         if ducking:
             fc += (f";[0:a:0]volume={source_volume},asplit=2[sourcea][sc];"
-                   f"[1:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
+                   f"[{music_idx}:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
                    f"afade=t=in:st=0:d={fin:.3f},afade=t=out:st={fout_st:.3f}:d={fout:.3f}[musicraw];"
                    f"[musicraw][sc]sidechaincompress=threshold=0.08:ratio=4:attack=20:release=300[ducked];"
-                   "[sourcea][ducked]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,"
-                   "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
+                   f"[sourcea][ducked]amix=inputs=2:duration=first:dropout_transition=0:normalize=0{norm_suffix}{a_target}")
         else:
             fc += (f";[0:a:0]volume={source_volume}[sourcea];"
-                   f"[1:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
+                   f"[{music_idx}:a:0]volume={music_volume},atrim=duration={duration:.3f},asetpts=PTS-STARTPTS,"
                    f"afade=t=in:st=0:d={fin:.3f},afade=t=out:st={fout_st:.3f}:d={fout:.3f}[music];"
-                   "[sourcea][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,"
-                   "alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[a]")
-        base += ["-stream_loop", "-1", "-i", str(music_path), "-filter_complex", fc, "-map", vmap, "-map", "[a]"]
+                   f"[sourcea][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0{norm_suffix}{a_target}")
     else:
-        fc += ";[0:a:0]volume=" + str(max(0.0, min(2.0, float(source_volume)))) + ",loudnorm=I=-14:TP=-1.5:LRA=11[a]"
-        base += ["-filter_complex", fc, "-map", vmap, "-map", "[a]"]
+        a_target = "[amixpre]" if has_sfx else "[a]"
+        norm_suffix = "" if has_sfx else ",loudnorm=I=-14:TP=-1.5:LRA=11"
+        fc += f";[0:a:0]volume={max(0.0, min(2.0, float(source_volume)))}{norm_suffix}{a_target}"
+
+    if has_sfx:
+        sfx_idx = cur_inputs
+        base += ["-i", str(sfx_file)]
+        fc += f";[amixpre][{sfx_idx}:a]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95,loudnorm=I=-14:TP=-1.5:LRA=11[a]"
+
+    base += ["-filter_complex", fc, "-map", vmap, "-map", "[a]"]
     base += ["-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-pix_fmt"]
     encoders = []
     if preview_size:

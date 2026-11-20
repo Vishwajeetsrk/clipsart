@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clipsart</title>
 <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#245F30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clipsart">
+<link rel="apple-touch-icon" href="/brand/favicon.svg">
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@300&family=Archivo+Black&family=Anton&family=Poppins:wght@800&display=swap" rel="stylesheet">
@@ -1336,6 +1347,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
   put($("#nav"), nav("overview", navIc("home", "overview"), "Home") +
     nav("library", navIc("film", "library"), "All videos", (() => { const w = S.jobs.filter(j => ["queued", "running"].includes(j.status)).length;
       return w ? `<span class="working" title="${w} working now"><i></i>${w} working</span>` : S.jobs.length ? `<span class="count">${S.jobs.length}</span>` : ""; })()) +
+    nav("analytics", navIc("chart", "analytics"), "Analytics") +
     `<h4><span>Creators</span></h4>` +
     S.creators.map(c => nav("c:" + c.id, cav(c), c.name,
       c.live_job ? `<span class="sb-tag rec" title="Recording now"><i></i>Rec</span>`
@@ -1351,8 +1363,9 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
       <button class="icon-btn bell" data-act="bell" title="Notifications" aria-label="Notifications${S.status.unread ? `, ${S.status.unread} new` : ""}" aria-haspopup="dialog">${ic("bell")}${S.status.unread ? `<span class="dotn">${S.status.unread > 9 ? "9+" : S.status.unread}</span>` : ""}</button></div>` : ""));
   const c = creator();
   const recording = S.creators.filter(x => x.live_job).length;
-  let title = {overview:"Home", library:"All videos", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
+  let title = {overview:"Home", library:"All videos", analytics:"Analytics", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
   if (S.view === "usage") sub = "What the AI has been used for.";
+  if (S.view === "analytics") sub = "Cross-platform video views and performance across YouTube Shorts, Instagram Reels, and TikTok.";
   if (S.view === "overview") sub = `${greeting()}. ${S.creators.length} creator${S.creators.length === 1 ? "" : "s"}${recording ? `, ${recording} recording now` : ""}.`;
   if (S.view === "library") sub = "Every video and recording, across all creators.";
   if (S.view === "settings") sub = (S.status.accounts === false ? "Your AI key and connected apps." : "Your profile, security and connected apps.");
@@ -1423,6 +1436,7 @@ function go(v, tab, fromHistory) {
   else if (v === "library") view.innerHTML = `<div id="add"></div><div id="jobs"></div>`;
   else if (v === "settings") view.innerHTML = `<div id="sform"></div>`;
   else if (v === "usage") { view.innerHTML = `<div id="usage"></div>`; loadUsage(); }
+  else if (v === "analytics") { view.innerHTML = `<div id="analytics"></div>`; loadAnalytics(); }
   else view.innerHTML = `<div id="stream"></div><div id="cbody"></div>`;   // the live player stays put across tabs: no restart, no rebuffer
   if ($("#add")) drawAdd(v === "overview" ? "hero" : "compact");
   if (v === "overview" && window.GradientASCII) { try { window._gaStop = GradientASCII($("#appAscii"), {colors: ["#ffb27a", "#ffffff", "#ffd2ae", "#ffe0c2", "#fff1e6"], shape: "horizon", lightMode: true, cellSize: 16, density: 0.8, glyphOpacity: 0.26, gradientOpacity: 0.32, glow: 0.06, grain: 0.06, mouseInteraction: false, clickEffect: "none"}); } catch {} }
@@ -1804,6 +1818,7 @@ function clipHtml(j, c) {
     <button class="shot" data-act="openclip" ${a} aria-label="Open clip: ${esc(c.title || c.hook)}">${body}
       <span class="badge l ${scoreCls(c.score)}" title="AI score">${c.score || "Hand"}</span><span class="badge r">${is4k ? '<span style="color:#6D28D9;font-weight:700;margin-right:4px">4K</span>' : ''}${fmt(c.end - c.start)}</span></button>
     <div class="clip-body">
+      ${c.visual_energy ? `<div style="margin:2px 0 4px 0"><span class="pill" style="font-size:11px;padding:2px 7px;background:rgba(52,122,61,0.12);color:var(--green);border:1px solid rgba(52,122,61,0.25);font-weight:600;display:inline-flex;align-items:center;gap:4px">⚡ ${c.visual_energy}% Action${c.expression && c.expression !== 'neutral' ? ` · ${esc(c.expression)}` : ''}</span></div>` : ''}
       <div class="hook">${esc(c.hook || "Untitled clip")}</div>
       <div class="ttl">${esc(c.title)}</div>
       ${c.render_error ? `<div class="err" style="margin-top:6px">The latest edit failed. Your previous clip is still available. Open it to try again.</div>` : ""}
@@ -2120,6 +2135,175 @@ function drawUsage() {
       : `<p class="help">No AI calls yet.</p>`}</div>`;
 }
 
+/* ============================================================ analytics */
+async function loadAnalytics() {
+  try { S.analytics = await api("/api/analytics"); } catch { return; }
+  drawShell(); drawAnalytics();
+}
+
+function drawAnalytics() {
+  const el = $("#analytics");
+  if (!el) return;
+  if (!S.analytics) { el.innerHTML = `<div class="card" style="padding:24px;text-align:center">Loading analytics…</div>`; return; }
+  const a = S.analytics;
+  const plats = a.platforms || {};
+  const corePlats = [
+    {id: "youtube", name: "YouTube Shorts", color: "#FF0000", data: plats.youtube || {views:0, posts:0}},
+    {id: "instagram", name: "Instagram Reels", color: "#E4405F", data: plats.instagram || {views:0, posts:0}},
+    {id: "tiktok", name: "TikTok", color: "#000000", data: plats.tiktok || {views:0, posts:0}},
+    {id: "facebook", name: "Facebook Reels", color: "#1877F2", data: plats.facebook || {views:0, posts:0}},
+    {id: "twitter", name: "X (Twitter)", color: "#000000", data: plats.twitter || {views:0, posts:0}},
+    {id: "linkedin", name: "LinkedIn", color: "#0A66C2", data: plats.linkedin || {views:0, posts:0}}
+  ];
+
+  const hist = a.history || [];
+  const maxViews = Math.max(...hist.map(h => h.views || 0), 10);
+  const chartBars = hist.length ? hist.map(h => {
+    const pct = Math.max(8, Math.round((h.views / maxViews) * 100));
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
+      <div style="font-size:10px;font-weight:600;color:var(--dim)">${h.views ? (h.views > 999 ? (h.views/1000).toFixed(1) + 'k' : h.views) : '0'}</div>
+      <div style="width:100%;max-width:24px;height:${pct}px;background:var(--green);border-radius:4px 4px 0 0;transition:height .3s"></div>
+      <div style="font-size:10px;color:var(--faint);white-space:nowrap">${(h.day || '').slice(5)}</div>
+    </div>`;
+  }).join("") : '<div style="color:var(--dim);text-align:center;padding:24px;width:100%">No view history recorded yet. Views accumulate as clips are posted.</div>';
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:20px;padding:4px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0">Performance & View Analytics</h2>
+          <p style="font-size:13px;color:var(--dim);margin:4px 0 0 0">Live cross-platform view counts synchronized across social channels.</p>
+        </div>
+        <button class="btn primary" data-act="refreshanalytics" style="display:inline-flex;align-items:center;gap:6px">
+          ${ic("bolt")} Refresh Live Metrics
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px">
+        <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:16px">
+          <div style="font-size:12px;color:var(--dim);font-weight:500">Total Views Across Platforms</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);margin-top:4px;letter-spacing:-0.02em">
+            ${(a.total_views || 0).toLocaleString()}
+          </div>
+          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:4px;display:flex;align-items:center;gap:4px">
+            ⚡ All active platforms
+          </div>
+        </div>
+
+        <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:16px">
+          <div style="font-size:12px;color:var(--dim);font-weight:500">Total Shorts & Reels Posted</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);margin-top:4px;letter-spacing:-0.02em">
+            ${(a.total_posts || 0).toLocaleString()}
+          </div>
+          <div style="font-size:11px;color:var(--dim);margin-top:4px">
+            Across 6 social networks
+          </div>
+        </div>
+
+        <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:16px">
+          <div style="font-size:12px;color:var(--dim);font-weight:500">Average Views per Clip</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);margin-top:4px;letter-spacing:-0.02em">
+            ${(a.avg_views_per_clip || 0).toLocaleString()}
+          </div>
+          <div style="font-size:11px;color:var(--green);font-weight:600;margin-top:4px">
+            Per posted video
+          </div>
+        </div>
+
+        <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:16px">
+          <div style="font-size:12px;color:var(--dim);font-weight:500">Last Synced</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text);margin-top:8px">
+            ${a.last_synced ? new Date(a.last_synced * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Just now'}
+          </div>
+          <div style="font-size:11px;color:var(--dim);margin-top:4px">
+            Auto-refreshes daily
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="font-size:15px;font-weight:600;margin:0">14-Day View Growth Trend</h3>
+          <span style="font-size:12px;color:var(--dim)">Daily Cumulative Views</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:10px;border-bottom:1px solid var(--line)">
+          ${chartBars}
+        </div>
+      </div>
+
+      <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:18px">
+        <h3 style="font-size:15px;font-weight:600;margin:0 0 14px 0">Platform Breakdown</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px">
+          ${corePlats.map(p => `
+            <div style="background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;display:flex;align-items:center;gap:12px">
+              <div style="width:36px;height:36px;border-radius:8px;background:var(--muted);display:grid;place-items:center;flex-shrink:0">
+                ${brandLogo(p.id, 22)}
+              </div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+                <div style="font-size:11px;color:var(--dim)">${p.data.posts} clip${p.data.posts === 1 ? '' : 's'} posted</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:16px;font-weight:700;color:var(--text)">${(p.data.views || 0).toLocaleString()}</div>
+                <div style="font-size:10px;color:var(--faint)">views</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:18px">
+        <h3 style="font-size:15px;font-weight:600;margin:0 0 14px 0">Top Performing Videos</h3>
+        ${(a.top_clips && a.top_clips.length) ? `
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left">
+              <thead>
+                <tr style="border-bottom:1px solid var(--line);color:var(--dim)">
+                  <th style="padding:8px 12px;font-weight:600">Video Title</th>
+                  <th style="padding:8px 12px;font-weight:600">Platform</th>
+                  <th style="padding:8px 12px;font-weight:600">Account</th>
+                  <th style="padding:8px 12px;font-weight:600;text-align:right">Views</th>
+                  <th style="padding:8px 12px;font-weight:600;text-align:right">AI Score</th>
+                  <th style="padding:8px 12px;font-weight:600;text-align:right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${a.top_clips.map(c => `
+                  <tr style="border-bottom:1px solid var(--line)">
+                    <td style="padding:10px 12px;font-weight:600;color:var(--text);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                      ${esc(c.title)}
+                    </td>
+                    <td style="padding:10px 12px">
+                      <span style="display:inline-flex;align-items:center;gap:6px">
+                        ${brandLogo(c.platform, 16)}
+                        <span style="text-transform:capitalize">${esc(c.platform)}</span>
+                      </span>
+                    </td>
+                    <td style="padding:10px 12px;color:var(--dim)">${esc(c.account_name || '–')}</td>
+                    <td style="padding:10px 12px;text-align:right;font-weight:700;color:var(--green)">
+                      ${(c.views || 0).toLocaleString()}
+                    </td>
+                    <td style="padding:10px 12px;text-align:right">
+                      <span class="badge ${scoreCls(c.score)}" style="position:static">${c.score || '–'}</span>
+                    </td>
+                    <td style="padding:10px 12px;text-align:right">
+                      ${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener" class="btn sm ghost" style="padding:3px 8px;font-size:11px">View</a>` : '–'}
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        ` : `
+          <div style="text-align:center;padding:24px;color:var(--dim)">
+            No published clips found yet. Export clips and publish to YouTube Shorts, Instagram Reels, or TikTok to track views here.
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
 /* ============================================================ settings */
 // With sign-in off there is no profile or password to manage. The AI section is for whoever runs the server.
 const setTabs = () => [
@@ -2365,7 +2549,8 @@ function drawClipDlg(full) {
     dlg.innerHTML = `<div class="editor"><div class="stage" id="stage">${stage}</div>
       <div class="panel">
         <div class="job-head" style="margin:0">
-          <div><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
+          <div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
+          ${c.visual_energy ? `<span class="pill" style="font-size:11px;padding:2px 7px;background:rgba(52,122,61,0.12);color:var(--green);border:1px solid rgba(52,122,61,0.25);font-weight:600;display:inline-flex;align-items:center;gap:4px">⚡ ${c.visual_energy}% Action${c.expression && c.expression !== 'neutral' ? ` · ${esc(c.expression)}` : ''}</span>` : ''}</div>
           <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p></div>
           <button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button>
         </div>
@@ -2383,6 +2568,8 @@ function drawClipDlg(full) {
           <label class="f">Big text (Hook)<input data-f="hook" value="${esc(c.hook)}"></label>
           <div class="two"><label class="sw"><input type="checkbox" data-f="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
             <label class="sw"><input type="checkbox" data-f="auto_emoji" ${c.auto_emoji ? "checked" : ""}>Auto-emoji</label></div>
+          <div class="two"><label class="sw" title="Distinguishes speakers and highlights Speaker 2 (Guest) in Cyan"><input type="checkbox" data-f="multi_speaker" ${c.multi_speaker ? "checked" : ""}>🎨 Multi-Speaker Colors</label>
+            <label class="sw" title="Inserts viral audio sound effects (whoosh on hook, pop on punchlines)"><input type="checkbox" data-f="sfx" ${c.sfx ? "checked" : ""}>🔊 Viral SFX (Whoosh & Pop)</label></div>
           <div class="two"><label class="f">Caption style<select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
             <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
           <p class="help">Caption styles: <b>Hormozi Gold</b> · <b>Beast Green</b> · <b>Cyberpunk</b> · <b>Karaoke</b> · <b>Minimalist</b> · Bounce · Hype · Clean · Neon Glow · Bold Box · Cinematic</p>
@@ -3114,6 +3301,21 @@ document.addEventListener("click", async e => {
 
       toast(a === "postnow" ? "Uploading in background via API…" : a === "postschedule" ? "Post scheduled!" : "Added to posting queue!", "ok");
       return tick();
+    }
+    if (a === "refreshanalytics") {
+      b.disabled = true;
+      b.textContent = "Syncing live stats…";
+      try {
+        S.analytics = await api("/api/analytics/refresh", {method: "POST"});
+        toast("Live analytics updated successfully.", "ok");
+        drawAnalytics();
+      } catch (err) {
+        toast("Could not refresh analytics: " + (err.message || err), "bad");
+      } finally {
+        b.disabled = false;
+        b.innerHTML = `${ic("bolt")} Refresh Live Metrics`;
+      }
+      return;
     }
   } catch (err) { b.disabled = false; toast(err.message, "bad"); }
 });

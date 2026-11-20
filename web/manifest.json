@@ -1,0 +1,25 @@
+{
+  "name": "Clipsart",
+  "short_name": "Clipsart",
+  "description": "AI Video Clipping & Studio for YouTube Shorts, Instagram Reels, and TikTok",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#174422",
+  "theme_color": "#245F30",
+  "icons": [
+    {
+      "src": "/brand/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/logo-light.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

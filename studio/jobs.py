@@ -109,7 +109,8 @@ _lock = threading.RLock()
 on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first finishes
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "blur", "quality": 720,
-            "range_start": None, "range_end": None, "captions": True, "content_type": "gaming", "auto_emoji": False}
+            "range_start": None, "range_end": None, "captions": True, "content_type": "gaming", "auto_emoji": False,
+            "multi_speaker": False, "sfx": False}
 
 
 LIMITS = {"max_clips": (1, 20), "min_len": (5, 120), "max_len": (10, 180), "quality": (360, 1080)}
@@ -119,14 +120,9 @@ def clean_options(options) -> dict:
     """Only known settings, each inside its allowed range. Raises ValueError on nonsense."""
     out = {}
     for k, v in (options if isinstance(options, dict) else {}).items():
-        if k == "captions":
+        if k in ("captions", "auto_emoji", "multi_speaker", "sfx"):
             if not isinstance(v, bool):
-                raise ValueError("Captions must be on or off.")
-            out[k] = v
-            continue
-        if k == "auto_emoji":
-            if not isinstance(v, bool):
-                raise ValueError("Auto-emoji must be on or off.")
+                raise ValueError(f"{k.replace('_', ' ').capitalize()} must be on or off.")
             out[k] = v
             continue
         if k == "content_type":
@@ -407,6 +403,14 @@ def render_changes(clip, changes: dict) -> dict:
         if not isinstance(changes["auto_emoji"], bool):
             raise ValueError("Auto-emoji must be on or off.")
         new["auto_emoji"] = changes["auto_emoji"]
+    if "multi_speaker" in changes:
+        if not isinstance(changes["multi_speaker"], bool):
+            raise ValueError("Multi-speaker must be on or off.")
+        new["multi_speaker"] = changes["multi_speaker"]
+    if "sfx" in changes:
+        if not isinstance(changes["sfx"], bool):
+            raise ValueError("SFX must be on or off.")
+        new["sfx"] = changes["sfx"]
     return new
 
 
@@ -436,6 +440,23 @@ def render_one(job, clip, words):
         if clip.get("overlay_file"):
             local["overlay_path"] = str(d / "clips" / Path(clip["overlay_file"]).name)
         near = _caption_words(job, clip, words, off) if clip.get("captions", True) else []
+        if local.get("multi_speaker") and near:
+            try:
+                from . import diarize
+                near = diarize.diarize_words(near)
+            except Exception:
+                pass
+        if clip.get("visual_energy") is None and src.is_file():
+            try:
+                from . import vision
+                v_info = vision.analyze_scene(src, local["start"], local["end"])
+                clip["visual_energy"] = v_info.get("visual_energy", 50)
+                clip["expression"] = v_info.get("expression", "neutral")
+                clip["action_tags"] = v_info.get("action_tags", [])
+                if v_info.get("visual_hook") and not clip.get("hook"):
+                    clip["hook"] = v_info["visual_hook"]
+            except Exception:
+                pass
         next_version = int(clip.get("version", 0)) + 1
         render_name = f"{clip['id']}.v{next_version}"
         out = render.render_clip(src, d / "clips", render_name, local, near, job["width"], job["height"])
@@ -489,6 +510,12 @@ def render_preview(job, clip, changes: dict) -> str:
             except (OSError, ValueError):
                 words = []
         words = [dict(w, s=w["s"] - off, e=w["e"] - off) for w in roman.words(words)]
+        if new.get("multi_speaker") and words:
+            try:
+                from . import diarize
+                words = diarize.diarize_words(words)
+            except Exception:
+                pass
     local = dict(new, start=new["start"] - off, end=new["end"] - off, hook=roman.to_roman(new.get("hook") or ""))
     if local.get("music_enabled") and local.get("music_file"):
         local["music_path"] = str(d / "clips" / Path(local["music_file"]).name)
@@ -863,7 +890,20 @@ def _run_job(job):
             c.update(id=f"clip{len(job['clips']) + 1:02d}", start=round(c["start"] + shift, 2),
                      end=round(c["end"] + shift, 2), style=o["style"], layout=o["layout"],
                      captions=o.get("captions", True), auto_emoji=o.get("auto_emoji", False),
+                     multi_speaker=o.get("multi_speaker", False), sfx=o.get("sfx", False),
                      status="queued", version=0)
+            try:
+                from . import vision
+                src_path = Path(job.get("source_path") or "")
+                if src_path.is_file():
+                    v_info = vision.analyze_scene(src_path, c["start"], c["end"])
+                    c["visual_energy"] = v_info.get("visual_energy", 50)
+                    c["expression"] = v_info.get("expression", "neutral")
+                    c["action_tags"] = v_info.get("action_tags", [])
+                    if v_info.get("visual_hook") and not c.get("hook"):
+                        c["hook"] = v_info["visual_hook"]
+            except Exception:
+                pass
             # Only the gameplay layout uses a webcam, so it is only looked for then, and only once: a
             # stream with no webcam is not looked for again on every clip of it.
             if o["layout"] == "gameplay" and face is False:
