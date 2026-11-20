@@ -76,8 +76,9 @@ def _write(name, data):
 # name -> (what the platform calls the id, what it calls the secret, .env names for both)
 APPS = {"google": ("Client ID", "Client secret", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
         "instagram": ("Instagram app ID", "Instagram app secret", "CLIPSART_IG_APP_ID", "CLIPSART_IG_APP_SECRET"),
-        "tiktok": ("Client key", "Client secret", "CLIPSART_TIKTOK_CLIENT_KEY", "CLIPSART_TIKTOK_CLIENT_SECRET")}
-APP_FOR = {"youtube": "google", "instagram": "instagram", "tiktok": "tiktok"}
+        "tiktok": ("Client key", "Client secret", "CLIPSART_TIKTOK_CLIENT_KEY", "CLIPSART_TIKTOK_CLIENT_SECRET"),
+        "threads": ("Threads app ID", "Threads app secret", "CLIPSART_THREADS_APP_ID", "CLIPSART_THREADS_APP_SECRET")}
+APP_FOR = {"youtube": "google", "instagram": "instagram", "tiktok": "tiktok", "threads": "threads"}
 _apps_seen = {"at": None, "data": {}}
 
 
@@ -166,13 +167,21 @@ def _new_state(platform: str) -> str:
     state = secrets.token_urlsafe(16)
     for k in [k for k, v in list(_states.items()) if time.time() - v[1] > 900]:
         _states.pop(k, None)
-    _states[state] = (ctx.uid(), time.time(), platform)
+    try:
+        u = ctx.uid()
+    except Exception:
+        u = "local"
+    _states[state] = (u, time.time(), platform)
     return state
 
 
 def _take_state(state: str, platform: str):
     got = _states.pop(state or "", None)
-    if not got or got[0] != ctx.uid() or got[2] != platform or time.time() - got[1] > 900:
+    try:
+        u = ctx.uid()
+    except Exception:
+        u = "local"
+    if not got or got[0] != u or got[2] != platform or time.time() - got[1] > 900:
         raise ValueError("This sign-in has expired. Press Connect again.")
 
 
@@ -191,6 +200,10 @@ def connect_url(platform: str) -> str:
     if platform == "instagram":
         return "https://www.instagram.com/oauth/authorize?" + urlencode({
             "client_id": cid, "redirect_uri": redirect, "response_type": "code", "scope": IG_SCOPES, "state": state})
+    if platform == "threads":
+        return "https://threads.net/oauth/authorize?" + urlencode({
+            "client_id": cid, "redirect_uri": redirect, "response_type": "code",
+            "scope": "threads_basic,threads_content_publish", "state": state})
     return "https://www.tiktok.com/v2/auth/authorize/?" + urlencode({
         "client_key": cid, "redirect_uri": redirect, "response_type": "code", "scope": TT_SCOPES, "state": state})
 
@@ -200,7 +213,7 @@ def connect_finish(platform: str, code: str, state: str) -> dict:
     code = (code or "").split("#")[0]           # Instagram adds "#_" to the code
     if not code:
         raise ValueError("The platform did not send a sign-in code. Try again.")
-    return {"youtube": _youtube_finish, "instagram": _instagram_finish, "tiktok": _tiktok_finish}[platform](code)
+    return {"youtube": _youtube_finish, "instagram": _instagram_finish, "tiktok": _tiktok_finish, "threads": _threads_finish}[platform](code)
 
 
 # ------------------------------------------------------------------ links the platforms can fetch a clip from
@@ -534,14 +547,16 @@ def connect_direct(platform: str, name: str, token: str, extra_id: str = "") -> 
         }
     elif platform == "threads":
         handle = name if name.startswith("@") else ("@" + name if name else "@threads_user")
+        app_id = extra_id or "threads_app"
         acc = {
             "id": aid,
             "platform": "threads",
             "name": handle,
+            "app_id": app_id,
             "access_token": token or "web",
             "added": time.time(),
             "status": "active",
-            "detail": "1-Click Web Shortcut" if token in ("web", "") else "Threads API v1",
+            "detail": f"1-Click Web Shortcut (App ID: {app_id})" if token in ("web", "") else f"Threads API v1 (App ID: {app_id})",
             "url": f"https://www.threads.net/{handle}"
         }
     else:

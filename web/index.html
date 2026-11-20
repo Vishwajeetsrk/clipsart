@@ -2574,7 +2574,12 @@ async function drawSettings() {
         tiktok: ["https://developers.tiktok.com/apps", "TikTok for Developers",
           ["Create an app and add <b>Login Kit</b> and <b>Content Posting API</b> with Direct Post turned on.",
            "Add the address below as a redirect URI, with the scopes <b>user.info.basic</b> and <b>video.publish</b>.", "Paste the Client key and Client secret here."],
-          "Until TikTok reviews your app, clips are posted as private: only the account owner sees them."]
+          "Until TikTok reviews your app, clips are posted as private: only the account owner sees them."],
+        threads: ["https://developers.facebook.com/apps", "Meta for Developers",
+          ["Create an app on <b>Meta for Developers</b> and add <b>Threads API</b> (Use cases &rarr; Threads).",
+           "Under <b>Threads &rarr; App settings</b>, add the address below as a <b>Redirect Callback URI</b>.",
+           "Paste the <b>Threads app ID</b> and <b>Threads app secret</b> here."],
+          "Works with public Threads profiles. Until Meta approves your app, accounts you add as Testers in App Roles can connect."]
       };
 
       const card = (pf, name, bg, desc, directUrl, isDirectOnly = false) => {
@@ -2692,7 +2697,7 @@ async function drawSettings() {
               ${card("facebook", "Facebook Reels", "#1877F2", "Post vertical video Reels directly to your Facebook Pages.", "https://business.facebook.com", true)}
               ${card("twitter", "X / Twitter", "#000000", "Post high-engagement video tweets directly to your timeline.", "https://x.com", true)}
               ${card("linkedin", "LinkedIn Video", "#0A66C2", "Publish thought-leadership and educational clips to your profile or page.", "https://www.linkedin.com", true)}
-              ${card("threads", "Threads Video", "#000000", "Publish video updates straight to your Threads feed.", "https://www.threads.net", true)}
+              ${card("threads", "Threads Video", "#000000", "Publish video updates straight to your Threads feed.", "https://www.threads.net")}
             </div>
           </div>
         ` : ''}
@@ -2898,7 +2903,7 @@ function openDirectConnect(pf) {
     instagram: ["Instagram Reels", "Connect an Instagram Creator or Business account in 1 click.", "Instagram Username / Handle", "e.g. @clipsart", "", "", "User Access Token (Optional)", "IGQV...", "Optional: Paste a Meta token with instagram_business_content_publish scope for automated background posting."],
     tiktok: ["TikTok", "Connect your TikTok account in 1 click.", "TikTok Username / Handle", "e.g. @clipsart", "", "", "Access Token (Optional)", "act...", "Optional: Paste a TikTok Content Posting API token for automated background posting."],
     pinterest: ["Pinterest Video Pins", "Connect a Pinterest account to publish Idea & Video Pins.", "Pinterest Handle or Board", "e.g. @clipsart or Pinterest-IG", "Board ID (Optional)", "e.g. 104829104810293", "Access Token (Optional)", "pina_...", "Optional: Paste a Pinterest API v5 token for automated video pin publishing."],
-    threads: ["Threads", "Connect a Threads account to publish video clips to Threads.", "Threads Username / Handle", "e.g. @clipsart", "", "", "User Access Token (Optional)", "THQ...", "Optional: Paste a Meta Threads API user token for automated background publishing."]
+    threads: ["Threads", "Connect a Threads account to publish video clips to Threads.", "Threads Username / Handle", "e.g. @clipsart", "Threads App ID (Optional)", "e.g. 104829104810293", "User Access Token (Optional)", "THQ...", "Optional: Enter your Threads App ID or User Access Token for automated background publishing."]
   };
   const cfg = names[pf] || [pf, "Connect your account in 1 click", "Account Name / Handle", "@mychannel", "", "", "Access Token (Optional)", "token...", ""];
   dlg.innerHTML = `<form id="dc_form" method="dialog" class="dlg" style="max-width:480px">

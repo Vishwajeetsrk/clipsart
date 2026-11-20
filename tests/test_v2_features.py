@@ -139,10 +139,26 @@ def main():
         check("api/accounts/direct connects Pinterest", pin_res.status_code == 200 and pin_res.json().get("ok"))
         pin_id = pin_res.json()["account"]["id"]
 
-        # Direct Connect Threads
-        th_res = client.post("/api/accounts/direct", json={"platform": "threads", "name": "@clipsart_hq", "token": "web"})
-        check("api/accounts/direct connects Threads", th_res.status_code == 200 and th_res.json().get("ok"))
+        # Direct Connect Threads with Threads App ID
+        th_res = client.post("/api/accounts/direct", json={"platform": "threads", "name": "@clipsart_hq", "token": "web", "extra_id": "104829104810293"})
+        check("api/accounts/direct connects Threads with App ID", th_res.status_code == 200 and th_res.json().get("ok"))
         th_id = th_res.json()["account"]["id"]
+        check("threads account records app_id", th_res.json()["account"].get("app_id") == "104829104810293")
+
+        # Verify Threads OAuth App configuration in /api/apps
+        apps_res = client.get("/api/apps")
+        check("api/apps includes threads configuration", apps_res.status_code == 200 and "threads" in apps_res.json())
+        th_cfg = apps_res.json()["threads"]
+        check("threads app id label is correct", th_cfg.get("id_label") == "Threads app ID")
+        check("threads redirect uri contains oauth/threads/callback", "/oauth/threads/callback" in th_cfg.get("redirect", ""))
+
+        # Save Threads App ID and Secret via PUT /api/apps
+        save_app_res = client.put("/api/apps", json={"platform": "threads", "client_id": "104829104810293", "client_secret": "threads_secret_key_123"})
+        check("api/apps saves Threads app ID & secret", save_app_res.status_code == 200 and save_app_res.json().get("threads", {}).get("ready") is True)
+
+        # Check OAuth authorization URL generation
+        th_auth_url = accounts.connect_url("threads")
+        check("threads connect_url generates valid authorization link", "threads.net/oauth/authorize" in th_auth_url and "client_id=104829104810293" in th_auth_url)
 
         # List accounts with status and permissions
         accs_res = client.get("/api/accounts")
