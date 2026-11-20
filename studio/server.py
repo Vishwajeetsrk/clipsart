@@ -1963,6 +1963,114 @@ def calendar_google_url(pid: str, request: Request, redirect: bool = False):
     return {"url": url}
 
 
+@app.get("/api/calendar/events")
+def calendar_events():
+    """Returns all scheduled and posted clips for the visual content calendar."""
+    mine = posting._mine()
+    all_jobs = jobs.list_jobs()
+    job_map = {j["id"]: j for j in all_jobs}
+
+    events = []
+    for p in mine:
+        job = job_map.get(p.get("job", ""))
+        clip = next((c for c in job.get("clips", []) if c["id"] == p.get("clip")), None) if job else None
+
+        video_url = f"/media/{job['id']}/clips/{clip['file']}" if (job and clip and clip.get("file")) else ""
+        thumbnail_url = f"/media/{job['id']}/clips/{clip['cover']}" if (job and clip and clip.get("cover")) else ""
+
+        events.append({
+            "id": p["id"],
+            "job": p.get("job"),
+            "clip": p.get("clip"),
+            "title": clip.get("title") if clip else p.get("title", "Clip"),
+            "hook": clip.get("hook", "") if clip else "",
+            "account_id": p.get("account"),
+            "account_name": p.get("account_name", ""),
+            "platform": p.get("platform", "youtube"),
+            "status": p.get("status", "scheduled"),
+            "due_at": p.get("due_at"),
+            "posted_at": p.get("posted_at"),
+            "created": p.get("created"),
+            "score": p.get("score") or (clip.get("score") if clip else 0),
+            "url": p.get("url", ""),
+            "remote_id": p.get("remote_id", ""),
+            "error": p.get("error"),
+            "views": p.get("views"),
+            "video_url": video_url,
+            "thumbnail_url": thumbnail_url,
+            "duration": round(float(clip.get("end", 0)) - float(clip.get("start", 0)), 1) if clip else 0,
+        })
+
+    accs = accounts.list_accounts()
+    scheduled_count = sum(1 for e in events if e["status"] == "scheduled")
+    posted_count = sum(1 for e in events if e["status"] == "posted")
+    failed_count = sum(1 for e in events if e["status"] == "failed")
+    platforms = sorted(list({e["platform"] for e in events if e.get("platform")}))
+
+    return {
+        "events": events,
+        "accounts": accs,
+        "summary": {
+            "scheduled": scheduled_count,
+            "posted": posted_count,
+            "failed": failed_count,
+            "total": len(events),
+            "platforms": platforms,
+        }
+    }
+
+
+@app.post("/api/calendar/schedule")
+def calendar_schedule(body: dict = Body(...)):
+    """Schedules a clip to one or more accounts for a specific date and time."""
+    job = jobs.get(str(body.get("job")))
+    clip = next((c for c in job["clips"] if c["id"] == body.get("clip")), None) if job else None
+    if not clip or clip.get("status") != "done":
+        raise HTTPException(404, "That clip is not ready or not found")
+    try:
+        made = posting.enqueue(
+            job,
+            clip,
+            [str(a) for a in body.get("accounts", [])][:20],
+            now=bool(body.get("now", False)),
+            scheduled_at=body.get("scheduled_at"),
+            timezone=body.get("timezone", "UTC")
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    if not made:
+        raise HTTPException(400, "Nothing was queued. Pick at least one account this clip has not already gone to.")
+    return {"ok": True, "queued": len(made), "posts": made}
+
+
+@app.post("/api/calendar/events/{pid}/post-now")
+def calendar_post_now(pid: str):
+    """Immediately posts a scheduled clip via its configured API integration."""
+    mine = posting._mine()
+    p = next((x for x in mine if x["id"] == pid), None)
+    if not p:
+        raise HTTPException(404, "Scheduled post not found")
+    with posting._lock:
+        p["due_at"] = time.time()
+        p["status"] = "scheduled"
+        p["tries"] = 0
+        p["error"] = None
+        posting._save()
+    posting._mirror(p)
+    threading.Thread(target=ctx.bind(posting._post), args=(p,), daemon=True).start()
+    return {"ok": True, "message": "Post dispatched for immediate upload"}
+
+
+@app.delete("/api/calendar/events/{pid}")
+def calendar_delete_event(pid: str):
+    """Deletes or cancels a scheduled post from the calendar."""
+    try:
+        posting.cancel(pid)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    return {"ok": True, "deleted": pid}
+
+
 @app.post("/api/alerts/test")
 def test_alert():
     if not alerts.configured():
