@@ -122,6 +122,14 @@ def main():
         res_ref = client.post("/api/analytics/refresh")
         check("api/analytics/refresh responds 200", res_ref.status_code == 200 and "total_views" in res_ref.json())
 
+        # Cloud Sync Test API
+        cloud_folder = tmp_dir / "cloud_drive"
+        cloud_folder.mkdir(parents=True, exist_ok=True)
+        res_put = client.put("/api/settings", json={"cloud_sync_folder": str(cloud_folder)})
+        check("api/settings updates cloud_sync_folder", res_put.status_code == 200 and res_put.json().get("cloud_sync_folder") == str(cloud_folder))
+        res_cloud = client.post("/api/cloud-sync/test")
+        check("api/cloud-sync/test responds 200", res_cloud.status_code == 200 and "writable" in res_cloud.json().get("message", "").lower())
+
         print("\nAll V2 feature tests completed successfully!")
     finally:
         import shutil

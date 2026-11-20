@@ -263,7 +263,7 @@ def save_settings(patch: dict) -> dict:
                 v = max(0, min(23, int(v)))
             else:
                 v = str(v).strip()[:300]
-                if k == "discord_webhook" and v and not v.startswith("https://discord.com/api/webhooks/"):
+                if k == "discord_webhook" and v and not (v.startswith("https://discord.com/api/webhooks/") or v.startswith("https://discordapp.com/api/webhooks/")):
                     raise ValueError("That doesn't look like a Discord webhook link.")
                 if k in SECRET_KEYS and v == "":
                     continue  # blank means "keep what is saved"

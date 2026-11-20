@@ -992,6 +992,15 @@ function brandLogo(pf, sz = 16) {
   if (p.includes("notion")) {
     return `<svg ${s} viewBox="0 0 24 24" aria-label="Notion"><rect width="24" height="24" rx="4" fill="#000000"/><path fill="#FFFFFF" d="M5.4 5.2c.6.5.9.5 2 .4l10.6-.6c.2 0 0-.2 0-.3L16.2 3c-.3-.3-.8-.6-1.6-.5L4.3 3.5c-.4 0-.5.3-.3.4l1.4 1.3zm.7 3v11c0 .5.3.7.9.7l11.4-.7c.6 0 .7-.4.7-.9V7.1c0-.5-.2-.7-.7-.7l-11.7.7c-.5 0-.6.3-.6.8zm10.6 1.1c.1.3 0 .7-.3.7l-.7.1v7.2c-.3.3-.7.4-1.2.4-.6 0-.9-.2-1.4-.8l-3.8-5.4v5.3l1.2.2c.1.3 0 .7-.3.7l-2.9.2c-.1-.3 0-.7.3-.7l.8-.2v-7.2l-1.1-.1c-.1-.3 0-.7.3-.7l3 .2 4 5.7v-5.2l-1-.1c-.1-.3 0-.7.3-.7l2.6-.1z"/></svg>`;
   }
+  if (p.includes("dropbox")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Dropbox"><path fill="#0061FF" d="M6 2.5 0 6.64l6 4.14 6-4.14L6 2.5zm12 0-6 4.14 6 4.14 6-4.14L18 2.5zM0 14.92l6 4.14 6-4.14-6-4.14L0 14.92zm18-4.14-6 4.14 6 4.14 6-4.14-6-4.14zm-6 9.17-6 4.14 6 4.14 6-4.14-6-4.14z"/></svg>`;
+  }
+  if (p.includes("onedrive")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="OneDrive"><path fill="#0078D4" d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>`;
+  }
+  if (p.includes("gdrive") || p.includes("drive")) {
+    return `<svg ${s} viewBox="0 0 24 24" aria-label="Google Drive"><path fill="#0066DA" d="M8.07 19.78 3.37 11.63l4.04-7h9.4l-4.04 7z"/><path fill="#00AC47" d="M12.74 3.63h8.08l-4.7 8.14h-8.08z"/><path fill="#FFBA00" d="M20.82 11.77l-4.7 8.14H8.04l4.7-8.14z"/></svg>`;
+  }
   if (p.includes("google") || p.includes("cloud")) {
     return `<svg ${s} viewBox="0 0 24 24" aria-label="Google Cloud"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>`;
   }
@@ -2458,26 +2467,150 @@ async function drawSettings() {
     }
     if (tab === "alerts") {
       const s = await api("/api/settings");
-      body.innerHTML = `<section class="set-sec"><h2>Community Drops & Alerts</h2><p class="help">Send video clips and instant notifications to Discord channels and Telegram chats. When configured, you can drop actual MP4 clips straight to your community in 1 click or automatically.</p>
-        <div class="fields">
-          <label class="f">Discord webhook URL<input data-s="discord_webhook" placeholder="${s.discord_webhook ? "Saved. Paste a new one to replace" : "https://discord.com/api/webhooks/..."}" autocomplete="off" spellcheck="false"></label>
-          <label class="f">Telegram bot token<input data-s="telegram_token" type="password" placeholder="${s.telegram_token ? "Saved. Paste a new one to replace" : "123456:ABC-DEF..."}" autocomplete="off"></label>
-          <label class="f">Telegram chat ID<input data-s="telegram_chat" value="${esc(s.telegram_chat || "")}" placeholder="-1001234567890" autocomplete="off"></label>
-          <label class="sw span"><input type="checkbox" data-s="auto_drop_community" ${s.auto_drop_community ? "checked" : ""}><span>Auto-drop rendered clips to Discord & Telegram<small>Whenever a clip finishes, immediately upload and dispatch the video file to Discord and Telegram.</small></span></label>
-        </div>
-        <div class="row" style="margin-top:16px"><button class="btn primary" data-act="ssave">Save settings</button><button class="btn" data-act="testalert">${ic("bell")}Send test message</button></div>
-        <h2 style="margin-top:28px">Notion Kanban Integration</h2><p class="help">Sync created and scheduled clips into a Notion database board (Kanban pipeline) with video titles, hooks, tags, score, and status.</p>
-        <div class="fields">
-          <label class="f">Notion integration token<input data-s="notion_token" type="password" placeholder="${s.notion_token ? "Saved. Paste a new one to replace" : "secret_..."}" autocomplete="off"></label>
-          <label class="f">Notion database ID<input data-s="notion_database_id" value="${esc(s.notion_database_id || "")}" placeholder="32-character database ID" autocomplete="off" spellcheck="false"></label>
-        </div>
-        <div class="row" style="margin-top:16px"><button class="btn primary" data-act="ssave">Save settings</button><button class="btn" data-act="testnotion">${ic("link")}Test Notion connection</button></div>
-        <h2 style="margin-top:28px">Cloud Storage Auto-Backup (Google Drive / Dropbox)</h2><p class="help">Automatically back up rendered MP4 clips and thumbnails directly into your local cloud sync directory (Google Drive, Dropbox, OneDrive, or local NAS).</p>
-        <div class="fields">
-          <label class="f">Cloud sync directory path<input data-s="cloud_sync_folder" value="${esc(s.cloud_sync_folder || "")}" placeholder="e.g. C:\Users\Name\Google Drive\Clips or /Users/name/Dropbox/Clips" autocomplete="off" spellcheck="false"></label>
-        </div>
-        <div class="row" style="margin-top:16px"><button class="btn primary" data-act="ssave">Save settings</button></div>
-      </section>`;
+      const hasDiscord = !!s.discord_webhook;
+      const hasTelegram = !!(s.telegram_token && s.telegram_chat);
+      const hasCommunity = hasDiscord || hasTelegram;
+      const hasNotion = !!(s.notion_token && s.notion_database_id);
+      const hasCloud = !!s.cloud_sync_folder;
+
+      body.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:20px;padding:4px 0">
+          <!-- Card 1: Community Drops & Alerts (Discord & Telegram) -->
+          <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:22px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px">
+                  ${brandLogo("discord", 22)}
+                  <span style="color:var(--dim);font-weight:300">|</span>
+                  ${brandLogo("telegram", 22)}
+                </div>
+                <div>
+                  <h2 style="font-size:16px;font-weight:700;color:var(--text);margin:0">Community Drops & Alerts</h2>
+                  <p class="help" style="margin:2px 0 0 0">Send video clips and instant notifications to Discord channels and Telegram chats. When configured, you can drop actual MP4 clips straight to your community in 1 click or automatically.</p>
+                </div>
+              </div>
+              <span class="pill ${hasCommunity ? 'ok' : ''}" style="font-size:11px">
+                ${hasCommunity ? '● Connected & Ready' : '○ Not configured'}
+              </span>
+            </div>
+
+            <div class="fields" style="display:grid;grid-template-columns:1fr;gap:14px">
+              <label class="f">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600">
+                  ${brandLogo("discord", 15)} Discord webhook URL
+                </span>
+                <input data-s="discord_webhook" value="${esc(s.discord_webhook || '')}" placeholder="${s.discord_webhook ? 'Saved. Paste a new one to replace' : 'https://discord.com/api/webhooks/...'}" autocomplete="off" spellcheck="false">
+                <small class="hint" style="font-size:11px;color:var(--dim)">Server Settings &rarr; Integrations &rarr; Webhooks &rarr; New Webhook</small>
+              </label>
+
+              <div class="two" style="gap:12px">
+                <label class="f">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600">
+                    ${brandLogo("telegram", 15)} Telegram bot token
+                  </span>
+                  <input data-s="telegram_token" type="password" value="${esc(s.telegram_token || '')}" placeholder="${s.telegram_token ? 'Saved. Paste a new one to replace' : '123456:ABC-DEF...'}" autocomplete="off">
+                  <small class="hint" style="font-size:11px;color:var(--dim)">Created via @BotFather</small>
+                </label>
+                <label class="f">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600">
+                    ${brandLogo("telegram", 15)} Telegram chat ID
+                  </span>
+                  <input data-s="telegram_chat" value="${esc(s.telegram_chat || '')}" placeholder="-1001234567890" autocomplete="off">
+                  <small class="hint" style="font-size:11px;color:var(--dim)">Target channel or supergroup chat ID</small>
+                </label>
+              </div>
+
+              <label class="sw span" style="background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;margin-top:2px">
+                <input type="checkbox" data-s="auto_drop_community" ${s.auto_drop_community ? 'checked' : ''}>
+                <span>
+                  <b>Auto-drop rendered clips to Discord & Telegram</b>
+                  <small style="display:block;color:var(--dim);margin-top:2px">Whenever a clip finishes, immediately upload and dispatch the video file to Discord and Telegram.</small>
+                </span>
+              </label>
+            </div>
+
+            <div class="row" style="margin-top:16px;gap:8px">
+              <button class="btn primary" data-act="ssave">${ic("check")}Save settings</button>
+              <button class="btn" data-act="testalert">${ic("bell")}Send test message</button>
+            </div>
+          </div>
+
+          <!-- Card 2: Notion Kanban Integration -->
+          <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:20px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:grid;place-items:center">
+                  ${brandLogo("notion", 22)}
+                </div>
+                <div>
+                  <h2 style="font-size:16px;font-weight:700;color:var(--text);margin:0">Notion Kanban Integration</h2>
+                  <p class="help" style="margin:2px 0 0 0">Sync created and scheduled clips into a Notion database board (Kanban pipeline) with video titles, hooks, tags, score, and status.</p>
+                </div>
+              </div>
+              <span class="pill ${hasNotion ? 'ok' : ''}" style="font-size:11px">
+                ${hasNotion ? '● Connected & Ready' : '○ Not configured'}
+              </span>
+            </div>
+
+            <div class="fields" style="display:grid;grid-template-columns:1fr;gap:14px">
+              <label class="f">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600">
+                  ${brandLogo("notion", 15)} Notion integration token
+                </span>
+                <input data-s="notion_token" type="password" value="${esc(s.notion_token || '')}" placeholder="${s.notion_token ? 'Saved. Paste a new one to replace' : 'secret_...'}" autocomplete="off">
+                <small class="hint" style="font-size:11px;color:var(--dim)">Create an internal integration at <a class="lnk" href="https://www.notion.so/my-integrations" target="_blank" rel="noopener">notion.so/my-integrations</a></small>
+              </label>
+
+              <label class="f">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600">
+                  ${brandLogo("notion", 15)} Notion database ID
+                </span>
+                <input data-s="notion_database_id" value="${esc(s.notion_database_id || '')}" placeholder="32-character database ID" autocomplete="off" spellcheck="false">
+                <small class="hint" style="font-size:11px;color:var(--dim)">From your database URL, e.g. notion.so/workspace/<b>{database_id}</b>?v=...</small>
+              </label>
+            </div>
+
+            <div class="row" style="margin-top:16px;gap:8px">
+              <button class="btn primary" data-act="ssave">${ic("check")}Save settings</button>
+              <button class="btn" data-act="testnotion">${brandLogo("notion", 14)}Test Notion connection</button>
+            </div>
+          </div>
+
+          <!-- Card 3: Cloud Storage Auto-Backup (Google Drive / Dropbox) -->
+          <div style="background:var(--muted);border:1px solid var(--line);border-radius:var(--r);padding:20px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px">
+                  ${brandLogo("gdrive", 20)}
+                  ${brandLogo("dropbox", 20)}
+                  ${brandLogo("onedrive", 20)}
+                </div>
+                <div>
+                  <h2 style="font-size:16px;font-weight:700;color:var(--text);margin:0">Cloud Storage Auto-Backup (Google Drive / Dropbox)</h2>
+                  <p class="help" style="margin:2px 0 0 0">Automatically back up rendered MP4 clips and thumbnails directly into your local cloud sync directory (Google Drive, Dropbox, OneDrive, or local NAS).</p>
+                </div>
+              </div>
+              <span class="pill ${hasCloud ? 'ok' : ''}" style="font-size:11px">
+                ${hasCloud ? '● Active Backup Folder' : '○ Not configured'}
+              </span>
+            </div>
+
+            <div class="fields" style="display:grid;grid-template-columns:1fr;gap:14px">
+              <label class="f">
+                <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600">
+                  ${brandLogo("google", 15)} Cloud sync directory path
+                </span>
+                <input data-s="cloud_sync_folder" value="${esc(s.cloud_sync_folder || '')}" placeholder="e.g. C:\\Users\\Name\\Google Drive\\Clips or /Users/name/Dropbox/Clips" autocomplete="off" spellcheck="false">
+                <small class="hint" style="font-size:11px;color:var(--dim)">Any local directory synced with Google Drive for Desktop, Dropbox, or Microsoft OneDrive</small>
+              </label>
+            </div>
+
+            <div class="row" style="margin-top:16px;gap:8px">
+              <button class="btn primary" data-act="ssave">${ic("check")}Save settings</button>
+              <button class="btn" data-act="testcloud">${ic("folder")}Verify Cloud Folder</button>
+            </div>
+          </div>
+        </div>`;
     }
   } catch (e) { body.innerHTML = `<div class="set-load">${esc(e.message)}</div>`; }
 }
@@ -3180,15 +3313,50 @@ document.addEventListener("click", async e => {
       const p = {}; $$("#sform [data-plan]").forEach(i => { (p[i.dataset.plan] ??= {})[i.dataset.f] = Number(i.value); });
       await send("/api/settings", {plans:p}, "PUT"); S.status = await api("/api/status"); toast("Plans saved", "ok"); return drawSettings();
     }
-    if (a === "testalert") { await saveSettings(); await api("/api/alerts/test", {method:"POST"}); return toast("Test message sent. Check your phone.", "ok"); }
+    if (a === "testalert") {
+      await saveSettings();
+      b.disabled = true;
+      b.textContent = "Sending test message…";
+      try {
+        await api("/api/alerts/test", {method:"POST"});
+        toast("Test message sent successfully! Check your Discord / Telegram.", "ok");
+      } catch (err) {
+        toast("Alert test failed: " + (err.message || err), "bad");
+      } finally {
+        b.disabled = false;
+        b.innerHTML = `${ic("bell")}Send test message`;
+      }
+      return;
+    }
     if (a === "testnotion") {
       await saveSettings();
+      b.disabled = true;
+      b.textContent = "Testing Notion connection…";
       try {
         const res = await api("/api/integrations/notion/test", {method:"POST"});
-        return toast(`Connected to Notion: "${res.title}"`, "ok");
+        toast(`Connected to Notion database: "${res.title}"`, "ok");
       } catch (err) {
-        return toast(err.message, "bad");
+        toast("Notion test failed: " + (err.message || err), "bad");
+      } finally {
+        b.disabled = false;
+        b.innerHTML = `${brandLogo("notion", 14)}Test Notion connection`;
       }
+      return;
+    }
+    if (a === "testcloud") {
+      await saveSettings();
+      b.disabled = true;
+      b.textContent = "Verifying cloud folder…";
+      try {
+        const res = await api("/api/cloud-sync/test", {method:"POST"});
+        toast(res.message || "Cloud backup directory verified and writable!", "ok");
+      } catch (err) {
+        toast("Cloud folder test failed: " + (err.message || err), "bad");
+      } finally {
+        b.disabled = false;
+        b.innerHTML = `${ic("folder")}Verify Cloud Folder`;
+      }
+      return;
     }
     if (a === "communitydrop") {
       b.disabled = true;

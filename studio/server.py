@@ -2030,6 +2030,23 @@ def cloud_sync_export_clip(jid: str, cid: str):
     return {"ok": True, "path": dest, "message": f"Exported to {Path(dest).name}"}
 
 
+@app.post("/api/cloud-sync/test")
+def cloud_sync_test():
+    """Verifies that the configured local cloud sync folder exists and is writable."""
+    if not cloud_sync.configured():
+        raise HTTPException(400, "Configure your Cloud Backup Directory in Settings first.")
+    folder = cloud_sync.get_sync_dir()
+    if not folder:
+        raise HTTPException(400, "The specified cloud backup folder does not exist or is not accessible.")
+    test_file = folder / ".clipsart_test.tmp"
+    try:
+        test_file.write_text("ok", encoding="utf-8")
+        test_file.unlink(missing_ok=True)
+    except Exception as e:
+        raise HTTPException(400, f"Cloud folder is not writable: {e}")
+    return {"ok": True, "path": str(folder), "message": f"Cloud directory is active and writable: {folder.name}"}
+
+
 # ================================================================ admin (only accounts marked as admin in the database)
 # The gate above already answers "not found" to everyone else; each route checks again so neither can be forgotten.
 def _uid_ok(uid: str) -> str:
