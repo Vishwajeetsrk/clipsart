@@ -187,6 +187,27 @@ def main():
         accs_res2 = client.get("/api/accounts")
         check("restored account is active in accounts list", any(a["id"] == pin_id for a in accs_res2.json()))
 
+        # Test AI providers and brand logo frontend assets
+        ai_res = client.get("/api/ai")
+        check("api/ai responds 200", ai_res.status_code == 200)
+        ai_data = ai_res.json()
+        prov_ids = [p["id"] for p in ai_data.get("providers", [])]
+        expected_provs = ["gemini", "openai", "xai", "groq", "openrouter", "anthropic", "ollama", "custom"]
+        check("api/ai includes all 8 core providers", all(p in prov_ids for p in expected_provs))
+
+        # Check frontend index.html integration
+        with open("web/index.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        check("index.html links devicon stylesheet", "devicon.min.css" in html)
+        check("index.html brandLogo supports gemini", "gemini" in html and "gem-g-" in html)
+        check("index.html brandLogo supports openai", "OpenAI" in html and "10A37F" in html)
+        check("index.html brandLogo supports anthropic claude", "Anthropic Claude" in html and "D97757" in html)
+        check("index.html brandLogo supports grok xai", "xAI Grok" in html)
+        check("index.html brandLogo supports groq", "Groq" in html and "F55036" in html)
+        check("index.html brandLogo supports openrouter", "OpenRouter" in html and "6366F1" in html)
+        check("index.html brandLogo supports ollama", "Ollama" in html)
+        check("index.html brandLogo supports custom", "Custom AI" in html)
+
         print("\nAll V2 feature tests completed successfully!")
     finally:
         import shutil
